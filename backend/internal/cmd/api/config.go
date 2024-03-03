@@ -5,67 +5,75 @@ import (
 	"os"
 
 	"github.com/knadh/koanf/parsers/toml"
+	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 )
 
 const (
 	configDir = "config/api"
-
-	ErrLoadBaseConfig = "error loading base config"
-	ErrLoadEnvFile    = "error loading %s config"
-	ErrLoadEnvVar     = "error loading env var"
 )
 
+// APIServerConfig is the configuration for the API server.
+type APIServerConfig struct {
+	Port int `json:"port"`
+	Auth struct {
+		JWTSecret string `json:"jwt_secret"`
+	} `json:"auth"`
+}
+
+// Config is the configuration for the application.
 type Config struct {
 	// Env is the environment the application is running in.
 	// It could be "development", "staging", "production", etc.
-	Env string `koanf:"env"`
+	Env string `json:"env"`
 
 	// DatabaseURL is the URL to the database.
-	DatabaseURL string `koanf:"database_url"`
+	DatabaseURL string `json:"database_url"`
 
 	// Log is the configuration for the logger.
 	Log struct {
-		Level  string `koanf:"level"`
-		Pretty bool   `koanf:"pretty"`
-	} `koanf:"log"`
+		Level  string `json:"level"`
+		Pretty bool   `json:"pretty"`
+	} `json:"log"`
 
 	// APIServer is the configuration for the API server.
-	APIServer struct {
-		Port int `koanf:"port"`
-		Auth struct {
-			JWTSecret string `koanf:"jwt_secret"`
-		} `koanf:"auth"`
-	} `koanf:"api_server"`
+	APIServer APIServerConfig `json:"api_server"`
 
-	Observability struct {
-		Collector struct {
-			Host               string   `koanf:"host"`
-			Port               int      `koanf:"port"`
-			Headers            []Header `koanf:"headers"`
-			IsInsecure         bool     `koanf:"is_insecure"`
-			WithMetricsEnabled bool     `koanf:"with_metrics_enabled"`
-		} `koanf:"collector"`
-	} `koanf:"observability"`
+	Observability ObservabilityConfig `json:"observability"`
 }
 
+// NewConfig returns a new configuration.
 func NewConfig() (*Config, error) {
-	env := os.Getenv("ENV")
-	if env == "" {
-		env = "development"
+	environ := os.Getenv("ENV")
+	if environ == "" {
+		environ = "development"
 	}
 
 	// Load the configuration from the environment.
 	knf := koanf.New(".")
 
+	// Load base.toml
 	if err := knf.Load(file.Provider(configDir+"/base.toml"), toml.Parser()); err != nil {
 		return nil, fmt.Errorf("error loading base config: %w", err)
 	}
 
-	if err := knf.Load(file.Provider(configDir+"/"+env+".toml"), toml.Parser()); err != nil {
-		return nil, fmt.Errorf("error loading %s config: %w", env)
+	// Load {env}.toml
+	if err := knf.Load(file.Provider(configDir+"/"+environ+".toml"), toml.Parser()); err != nil {
+		return nil, fmt.Errorf("error loading %s config: %w", environ, err)
 	}
 
-	return &Config{}, nil
+	// Load ENV variables
+	if err := knf.Load(env.Provider("GOADMIN_", ".", nil), nil); err != nil {
+		return nil, fmt.Errorf("error loading `env` config: %w", err)
+	}
+
+	cfg := Config{}
+
+	// Unmarshal the loaded configuration into the Config struct.
+	if err := knf.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{Tag: "json"}); err != nil {
+		return nil, fmt.Errorf("error unmarshalling config: %w", err)
+	}
+
+	return &cfg, nil
 }

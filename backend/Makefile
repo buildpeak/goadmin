@@ -25,7 +25,7 @@ bench:
 ########
 
 lint: ## lints the entire codebase
-	@golangci-lint run ./... --config=./.golangci.toml
+	@golangci-lint run ./...
 
 ###########
 #   GCI   #

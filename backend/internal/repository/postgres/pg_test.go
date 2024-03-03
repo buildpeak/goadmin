@@ -17,6 +17,7 @@ var testPgConnStr string
 func TestMain(m *testing.M) {
 	// setup
 	ctx := context.Background()
+
 	pgc, err := sqltestutil.StartPostgresContainer(ctx, "15")
 	if err != nil {
 		log.Fatalf("Failed to start postgres container: %v", err)
@@ -43,12 +44,15 @@ func TestMain(m *testing.M) {
 	exitCode := m.Run()
 
 	// teardown
+	log.Printf("Shutting down Postgres container\n")
 	pgc.Shutdown(ctx)
 
 	os.Exit(exitCode)
 }
 
 func TestPostgres(t *testing.T) {
+	t.Parallel()
+
 	db, err := sql.Open("pgx", testPgConnStr)
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
@@ -70,13 +74,20 @@ func TestPostgres(t *testing.T) {
 	defer rows.Close()
 
 	tables := []string{}
+
 	for rows.Next() {
 		var table string
+
 		err = rows.Scan(&table)
 		if err != nil {
 			t.Fatalf("Failed to scan row: %v", err)
 		}
+
 		tables = append(tables, table)
+	}
+
+	if err := rows.Err(); err != nil {
+		t.Fatalf("Failed to iterate rows: %v", err)
 	}
 
 	expectedTables := []string{
@@ -86,7 +97,9 @@ func TestPostgres(t *testing.T) {
 		"permission",
 		"role_permission",
 		"user_permission",
+		"revoked_token",
 	}
+
 	if len(tables) != len(expectedTables) {
 		t.Fatalf("Expected %d tables, got %d", len(expectedTables), len(tables))
 	}

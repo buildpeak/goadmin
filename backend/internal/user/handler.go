@@ -3,13 +3,13 @@ package user
 import "net/http"
 
 type Handler struct {
-	userService UserService
+	userService Service
 }
 
-func NewHandler(userService UserService) *Handler {
+func NewHandler(userService Service) *Handler {
 	return &Handler{userService: userService}
 }
 
-func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) List(_ http.ResponseWriter, _ *http.Request) {
 	// ...
 }

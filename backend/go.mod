@@ -9,6 +9,7 @@ require (
 	github.com/honeycombio/otel-config-go v1.14.0
 	github.com/jackc/pgx/v5 v5.5.3
 	github.com/knadh/koanf/parsers/toml v0.1.0
+	github.com/knadh/koanf/providers/env v0.1.0
 	github.com/knadh/koanf/providers/file v0.1.0
 	github.com/knadh/koanf/v2 v2.1.0
 	github.com/lmittmann/tint v1.0.4

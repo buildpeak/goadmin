@@ -73,17 +73,11 @@ type UserRole struct {
 
 // UserRepository defines the methods that a user repository should implement
 type UserRepository interface {
-	FindAll(ctx context.Context, filter UserFilter) ([]User, error)
+	FindAll(ctx context.Context, filter *UserFilter) ([]User, error)
 	FindByID(ctx context.Context, id string) (*User, error)
 	FindByUsername(ctx context.Context, username string) (*User, error)
-	Create(ctx context.Context, user User) (*User, error)
-	Update(ctx context.Context, user User) (*User, error)
+	Create(ctx context.Context, user *User) (*User, error)
+	Update(ctx context.Context, user *User) (*User, error)
 	SoftDelete(ctx context.Context, id string) error
 	Delete(ctx context.Context, id string) error
-}
-
-// RoleRepository defines the methods that a role repository should implement
-type RevokedTokenRepository interface {
-	AddRevokedToken(ctx context.Context, token string) error
-	IsRevoked(ctx context.Context, token string) (bool, error)
 }

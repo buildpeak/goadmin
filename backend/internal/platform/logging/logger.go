@@ -15,12 +15,13 @@ type LoggerConfig struct {
 type Option func(*LoggerConfig)
 
 func WithLevel(level string) Option {
-	var l slog.Level
-	if err := l.UnmarshalText([]byte(level)); err != nil {
-		l = slog.LevelError
+	var lvl slog.Level
+	if err := lvl.UnmarshalText([]byte(level)); err != nil {
+		lvl = slog.LevelError
 	}
+
 	return func(c *LoggerConfig) {
-		c.Level = l
+		c.Level = lvl
 	}
 }
 

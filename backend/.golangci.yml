@@ -1,0 +1,190 @@
+linters-settings:
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(goadmin-backend)
+  gofumpt:
+    extra-rules: true
+    module-path: goadmin-backend
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  govet:
+    check-shadowing: true
+    enable-all: true
+    disable:
+      - fieldalignment
+  revive:
+    confidence: 0
+  prealloc:
+    simple: false
+    range-loops: true
+    for-loops: true
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - whyNoLint
+      - unnamedResult
+  errorlint:
+    errorf: true
+  nolintlint:
+    require-explanation: true
+    require-specific: true
+  tagalign:
+    align: false
+  depguard:
+    rules:
+      prevent_unmaintained_packages:
+        deny:
+          - pkg: io/ioutil
+            desc: >-
+              replaced by io and os packages since Go 1.16:
+              https://tip.golang.org/doc/go1.16#ioutil
+      main:
+        deny:
+          - pkg: github.com/sirupsen/logrus
+            desc: please use log/slog from std lib
+          - pkg: github.com/pkg/errors
+            desc: please use errors from std lib
+          - pkg: gorm.io/gorm
+            desc: please use pgx and learn sql
+      test:
+        deny:
+          - pkg: github.com/stretchr/testify/assert
+            desc: please use go table tests and simple ifs
+          - pkg: github.com/stretchr/testify/require
+            desc: please use go table tests and simple ifs
+          - pkg: github.com/stretchr/testify/suite
+            desc: please use go table tests and simple ifs
+run:
+  timeout: 1m
+service:
+  golangci-lint-version: '1.56'
+linters:
+  disable-all: true
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - cyclop
+    - decorder
+    - depguard
+    - dogsled
+    - dupl
+    - dupword
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - execinquery
+    - exhaustive
+    - exportloopref
+    - forbidigo
+    - forcetypeassert
+    - gci
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecknoglobals
+    - gochecknoinits
+    - gochecksumtype
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godox
+    - goerr113
+    - gofmt
+    - gofumpt
+    - goheader
+    - goimports
+    - gomnd
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - gosmopolitan
+    - govet
+    - grouper
+    - importas
+    - ineffassign
+    - interfacebloat
+    - ireturn
+    - lll
+    - loggercheck
+    - maintidx
+    - makezero
+    - mirror
+    - misspell
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - paralleltest
+    - perfsprint
+    - prealloc
+    - predeclared
+    - promlinter
+    - protogetter
+    - reassign
+    - revive
+    - rowserrcheck
+    - sloglint
+    - spancheck
+    - sqlclosecheck
+    - staticcheck
+    - stylecheck
+    - tagalign
+    - tenv
+    - testableexamples
+    - testifylint
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - varnamelen
+    - wastedassign
+    - whitespace
+    - wrapcheck
+    - wsl
+    - zerologlint
+issues:
+  exclude-rules:
+    - path: (.+)_test\.go
+      linters:
+        - funlen
+        - goconst
+        - interfacer
+        - dupl
+        - lll
+        - goerr113
+        - varnamelen
+        - errcheck
+        - gocritic
+        - cyclop
+        - wrapcheck
+        - gocognit
+        - contextcheck
+        - nlreturn
+        - gochecknoglobals
+        - errorlint
+    - linters:
+        - lll
+      source: '^//go:generate '

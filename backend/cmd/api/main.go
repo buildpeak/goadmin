@@ -16,6 +16,11 @@ import (
 )
 
 func main() {
+	returnCode := 0
+	defer func() {
+		os.Exit(returnCode)
+	}()
+
 	apiCtx, cancelAPICtx := context.WithCancel(context.Background())
 	defer cancelAPICtx()
 
@@ -23,30 +28,28 @@ func main() {
 	cfg, err := api.NewConfig()
 	if err != nil {
 		slog.Error("failed to load config: %v", slog.Any("err", err))
-		cancelAPICtx()
-		os.Exit(1)
+
+		returnCode = 1
+
+		return
 	}
 
 	// logger
 	logger := logging.NewLogger()
 
-	// db
-	db, err := pgxpool.New(apiCtx, cfg.DatabaseURL)
+	// dbpool
+	dbpool, err := pgxpool.New(apiCtx, cfg.DatabaseURL)
 	if err != nil {
 		logger.Error("failed to connect to database", slog.Any("err", err))
-		cancelAPICtx()
-		os.Exit(1)
+
+		returnCode = 1
+
+		return
 	}
 
-	// app := &api.App{
-	// 	Config: cfg,
-	// 	Logger: logger,
-	// 	DB:     db,
-	// }
-
 	// repositories
-	userRepo := postgres.NewUserRepo(db)
-	revokedTokenRepo := postgres.NewRevokedTokenRepo(db)
+	userRepo := postgres.NewUserRepo(dbpool)
+	revokedTokenRepo := postgres.NewRevokedTokenRepo(dbpool)
 
 	// services
 	authService := auth.NewAuthService(
@@ -58,8 +61,9 @@ func main() {
 
 	// router
 	apiHandler := api.NewRouter(&api.Handlers{
-		AuthHandler: auth.NewHandler(authService),
-		UserHandler: user.NewHandler(userService),
+		AuthHandler:   auth.NewHandler(authService),
+		UserHandler:   user.NewHandler(userService),
+		HealthHandler: api.NewHealthHandler(logger),
 	})
 
 	// otel
@@ -69,8 +73,10 @@ func main() {
 	)
 	if err != nil {
 		logger.Error("failed to start otel", slog.Any("err", err))
-		cancelAPICtx()
-		os.Exit(1)
+
+		returnCode = 1
+
+		return
 	}
 
 	// web server
@@ -89,14 +95,21 @@ func main() {
 	// graceful shutdown
 	if err := api.GracefulShutdown(apiCtx, func() error {
 		logger.Info("shutting down server")
-		return mainAPIServer.Shutdown(apiCtx)
+
+		if err := mainAPIServer.Shutdown(apiCtx); err != nil {
+			logger.Error("failed to shutdown server", slog.Any("err", err))
+		}
+
+		return nil
 	}, func() error {
 		logger.Info("shutting down otel")
 		shutdownOtel()
+
 		return nil
 	}, func() error {
 		logger.Info("closing database connection")
-		db.Close()
+		dbpool.Close()
+
 		return nil
 	}); err != nil {
 		logger.Error("failed to shutdown server", slog.Any("err", err))

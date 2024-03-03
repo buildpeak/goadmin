@@ -1,0 +1,3 @@
+[log]
+pretty = true
+level = "debug"

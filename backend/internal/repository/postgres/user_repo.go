@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -26,29 +27,32 @@ func NewUserRepo(db Queryer) *UserRepo {
 }
 
 // FindAll returns all users from the database
-func (r *UserRepo) FindAll(ctx context.Context, filter domain.UserFilter) ([]domain.User, error) {
+func (r *UserRepo) FindAll(ctx context.Context, filter *domain.UserFilter) ([]domain.User, error) {
 	where := "1 = 1"
 	args := []interface{}{}
 
 	switch {
 	case filter.FirstName != "":
 		where += " AND first_name = $1"
+
 		args = append(args, filter.FirstName)
 	case filter.LastName != "":
 		where += " AND last_name = $2"
+
 		args = append(args, filter.LastName)
 	case filter.Active != nil:
 		where += " AND active = $3"
+
 		args = append(args, filter.Active)
 	case filter.Deleted != nil:
 		where += " AND deleted = $4"
+
 		args = append(args, filter.Deleted)
 	case filter.CreatedBetween[0].Before(filter.CreatedBetween[1]):
 		where += " AND created_at BETWEEN $5 AND $6"
+
 		args = append(args, filter.CreatedBetween[0], filter.CreatedBetween[1])
 	}
-
-	var users []domain.User
 
 	findAllQuery := fmt.Sprintf(`SELECT * FROM %s WHERE %s ORDER BY id`, userTable, where)
 
@@ -57,22 +61,24 @@ func (r *UserRepo) FindAll(ctx context.Context, filter domain.UserFilter) ([]dom
 		return nil, err
 	}
 
-	for _, r := range results {
-		users = append(users, *r)
+	users := make([]domain.User, 0, len(results))
+
+	for i, r := range results {
+		users[i] = *r
 	}
 
 	return users, nil
 }
 
 // FindByID returns a user from the database by id
-func (r *UserRepo) FindByID(ctx context.Context, id string) (*domain.User, error) {
+func (r *UserRepo) FindByID(ctx context.Context, usrID string) (*domain.User, error) {
 	findByIDQuery := fmt.Sprintf(`SELECT * FROM %s
 	WHERE id = $1 AND NOT deleted AND active`, userTable)
 
-	user, err := queryRow[domain.User](ctx, r.db, findByIDQuery, id)
+	user, err := queryRow[domain.User](ctx, r.db, findByIDQuery, usrID)
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, domain.NewUserNotFoundError(id)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.NewUserNotFoundError(usrID)
 		}
 
 		return nil, fmt.Errorf("find user by ID error: %w", err)
@@ -88,7 +94,7 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 
 	user, err := queryRow[domain.User](ctx, r.db, findByUsernameQuery, username)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, domain.NewUserNotFoundError(username)
 		}
 
@@ -99,7 +105,7 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 }
 
 // Create a new user in the database
-func (r *UserRepo) Create(ctx context.Context, user domain.User) (*domain.User, error) {
+func (r *UserRepo) Create(ctx context.Context, user *domain.User) (*domain.User, error) {
 	createUserQuery := fmt.Sprintf(`INSERT INTO %s (
 		username, email, password, first_name, last_name
 	) VALUES (
@@ -124,7 +130,7 @@ func (r *UserRepo) Create(ctx context.Context, user domain.User) (*domain.User, 
 }
 
 // Update a user in the database
-func (r *UserRepo) Update(ctx context.Context, user domain.User) (*domain.User, error) {
+func (r *UserRepo) Update(ctx context.Context, user *domain.User) (*domain.User, error) {
 	updateUserQuery := fmt.Sprintf(`UPDATE %s SET
 			username = $1,
 			email = $2,
@@ -153,13 +159,13 @@ func (r *UserRepo) Update(ctx context.Context, user domain.User) (*domain.User, 
 }
 
 // SoftDelete a user in the database
-func (r *UserRepo) SoftDelete(ctx context.Context, id string) error {
+func (r *UserRepo) SoftDelete(ctx context.Context, usrID string) error {
 	softDeleteUserQuery := fmt.Sprintf(`UPDATE %s SET
 		deleted = true,
 		deleted_at = NOW()
 	WHERE id = $1`, userTable)
 
-	_, err := exec(ctx, r.db, softDeleteUserQuery, id)
+	_, err := exec(ctx, r.db, softDeleteUserQuery, usrID)
 	if err != nil {
 		return fmt.Errorf("soft delete user error: %w", err)
 	}

@@ -11,18 +11,21 @@ import (
 	"goadmin-backend/internal/domain"
 )
 
-func strToTime(s string) time.Time {
+func strToTime(s string) time.Time { //nolint: unparam // only for testing
 	t, _ := time.Parse("2006-01-02T15:04:05-07:00", s)
 	localTime, _ := time.LoadLocation("Local")
+
 	return t.In(localTime)
 }
 
 func before(t *testing.T) (*pgx.Conn, func(t *testing.T)) {
 	t.Helper()
+
 	conn, err := pgx.Connect(context.Background(), testPgConnStr)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	return conn, func(t *testing.T) {
 		t.Helper()
 		conn.Close(context.Background())
@@ -30,12 +33,17 @@ func before(t *testing.T) (*pgx.Conn, func(t *testing.T)) {
 }
 
 func TestNewUserRepo(t *testing.T) {
+	t.Parallel()
+
 	conn, teardown := before(t)
-	defer teardown(t)
+	t.Cleanup(func() {
+		teardown(t)
+	})
 
 	type args struct {
 		db *pgx.Conn
 	}
+
 	tests := []struct {
 		name string
 		args args
@@ -52,7 +60,11 @@ func TestNewUserRepo(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			if got := NewUserRepo(tt.args.db); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewUserRepo() = %v, want %v", got, tt.want)
 			}
@@ -61,16 +73,21 @@ func TestNewUserRepo(t *testing.T) {
 }
 
 func Test_UserRepo_FindAll(t *testing.T) {
+	t.Parallel()
+
 	conn, teardown := before(t)
-	defer teardown(t)
+	t.Cleanup(func() {
+		teardown(t)
+	})
 
 	type fields struct {
 		db *pgx.Conn
 	}
+
 	type args struct {
-		ctx    context.Context
-		filter domain.UserFilter
+		filter *domain.UserFilter
 	}
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -84,8 +101,7 @@ func Test_UserRepo_FindAll(t *testing.T) {
 				db: conn,
 			},
 			args: args{
-				ctx:    context.Background(),
-				filter: domain.UserFilter{},
+				filter: &domain.UserFilter{},
 			},
 			want: []domain.User{
 				{
@@ -121,8 +137,7 @@ func Test_UserRepo_FindAll(t *testing.T) {
 				db: conn,
 			},
 			args: args{
-				ctx: context.Background(),
-				filter: domain.UserFilter{
+				filter: &domain.UserFilter{
 					FirstName: "John",
 				},
 			},
@@ -143,11 +158,16 @@ func Test_UserRepo_FindAll(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			r := &UserRepo{
 				db: tt.fields.db,
 			}
-			got, err := r.FindAll(tt.args.ctx, tt.args.filter)
+
+			got, err := r.FindAll(context.Background(), tt.args.filter)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UserRepo.FindAll() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -161,16 +181,21 @@ func Test_UserRepo_FindAll(t *testing.T) {
 }
 
 func Test_UserRepo_FindByID(t *testing.T) {
+	t.Parallel()
+
 	conn, teardown := before(t)
-	defer teardown(t)
+	t.Cleanup(func() {
+		teardown(t)
+	})
 
 	type fields struct {
 		db *pgx.Conn
 	}
+
 	type args struct {
-		ctx context.Context
-		id  string
+		id string
 	}
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -184,8 +209,7 @@ func Test_UserRepo_FindByID(t *testing.T) {
 				db: conn,
 			},
 			args: args{
-				ctx: context.Background(),
-				id:  "1",
+				id: "1",
 			},
 			want: &domain.User{
 				ID:        "1",
@@ -202,15 +226,21 @@ func Test_UserRepo_FindByID(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			r := &UserRepo{
 				db: tt.fields.db,
 			}
-			got, err := r.FindByID(tt.args.ctx, tt.args.id)
+
+			got, err := r.FindByID(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UserRepo.FindByID() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("UserRepo.FindByID() = %v, want %v", got, tt.want)
 			}
@@ -219,16 +249,21 @@ func Test_UserRepo_FindByID(t *testing.T) {
 }
 
 func Test_UserRepo_FindByUsername(t *testing.T) {
+	t.Parallel()
+
 	conn, teardown := before(t)
-	defer teardown(t)
+	t.Cleanup(func() {
+		teardown(t)
+	})
 
 	type fields struct {
 		db *pgx.Conn
 	}
+
 	type args struct {
-		ctx      context.Context
 		username string
 	}
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -242,7 +277,6 @@ func Test_UserRepo_FindByUsername(t *testing.T) {
 				db: conn,
 			},
 			args: args{
-				ctx:      context.Background(),
 				username: "janedoe",
 			},
 			want: &domain.User{
@@ -260,15 +294,21 @@ func Test_UserRepo_FindByUsername(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			r := &UserRepo{
 				db: tt.fields.db,
 			}
-			got, err := r.FindByUsername(tt.args.ctx, tt.args.username)
+
+			got, err := r.FindByUsername(context.Background(), tt.args.username)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UserRepo.FindByUsername() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("UserRepo.FindByUsername() = %v, want %v", got, tt.want)
 			}
@@ -277,16 +317,21 @@ func Test_UserRepo_FindByUsername(t *testing.T) {
 }
 
 func Test_UserRepo_Create(t *testing.T) {
+	t.Parallel()
+
 	conn, teardown := before(t)
-	defer teardown(t)
+	t.Cleanup(func() {
+		teardown(t)
+	})
 
 	type fields struct {
 		db *pgx.Conn
 	}
+
 	type args struct {
-		ctx  context.Context
-		user domain.User
+		user *domain.User
 	}
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -300,8 +345,7 @@ func Test_UserRepo_Create(t *testing.T) {
 				db: conn,
 			},
 			args: args{
-				ctx: context.Background(),
-				user: domain.User{
+				user: &domain.User{
 					ID:        "3",
 					Username:  "jackc",
 					Email:     "jackc@goadmin.com",
@@ -323,21 +367,29 @@ func Test_UserRepo_Create(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			r := &UserRepo{
 				db: tt.fields.db,
 			}
-			got, err := r.Create(tt.args.ctx, tt.args.user)
+
+			got, err := r.Create(context.Background(), tt.args.user)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UserRepo.Create() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if !got.CreatedAt.IsZero() {
 				tt.want.CreatedAt = got.CreatedAt
 			}
+
 			if !got.UpdatedAt.IsZero() {
 				tt.want.UpdatedAt = got.UpdatedAt
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("UserRepo.Create() = %v, want %v", got, tt.want)
 			}

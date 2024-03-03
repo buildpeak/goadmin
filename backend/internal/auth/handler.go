@@ -1,9 +1,9 @@
 package auth
 
 type Handler struct {
-	authService AuthService
+	authService Service
 }
 
-func NewHandler(authService AuthService) *Handler {
+func NewHandler(authService Service) *Handler {
 	return &Handler{authService: authService}
 }

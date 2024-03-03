@@ -16,16 +16,18 @@ type notFoundError struct {
 
 type UserNotFoundError struct {
 	notFoundError
+	id string
 }
 
-func NewUserNotFoundError(id string) UserNotFoundError {
+func NewUserNotFoundError(usrID string) UserNotFoundError {
 	return UserNotFoundError{
-		notFoundError{
+		notFoundError: notFoundError{
 			baseError{
 				Type:    "user_not_found",
 				Message: "user not found",
 			},
 			"User",
 		},
+		id: usrID,
 	}
 }

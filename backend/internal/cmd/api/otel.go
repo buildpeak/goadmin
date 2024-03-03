@@ -7,18 +7,20 @@ import (
 )
 
 type Header struct {
-	Key   string
-	Value string
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+type Collector struct {
+	Host               string   `json:"host"`
+	Port               int      `json:"port"`
+	Headers            []Header `json:"headers"`
+	IsInsecure         bool     `json:"is_insecure"`
+	WithMetricsEnabled bool     `json:"with_metrics_enabled"`
 }
 
 type ObservabilityConfig struct {
-	Collector struct {
-		Host               string
-		Port               int
-		Headers            []Header
-		IsInsecure         bool
-		WithMetricsEnabled bool
-	}
+	Collector Collector `json:"collector"`
 }
 
 type ServiceInfo struct {

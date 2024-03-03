@@ -7,12 +7,17 @@ import (
 )
 
 func TestNewRevokedTokenRepo(t *testing.T) {
+	t.Parallel()
+
 	conn, teardown := before(t)
-	defer teardown(t)
+	t.Cleanup(func() {
+		teardown(t)
+	})
 
 	type args struct {
 		db Queryer
 	}
+
 	tests := []struct {
 		name string
 		args args
@@ -29,7 +34,11 @@ func TestNewRevokedTokenRepo(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			if got := NewRevokedTokenRepo(tt.args.db); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewRevokedTokenRepo() = %v, want %v", got, tt.want)
 			}
@@ -38,16 +47,21 @@ func TestNewRevokedTokenRepo(t *testing.T) {
 }
 
 func TestRevokedTokenRepo_AddRevokedToken(t *testing.T) {
+	t.Parallel()
+
 	conn, teardown := before(t)
-	defer teardown(t)
+	t.Cleanup(func() {
+		teardown(t)
+	})
 
 	type fields struct {
 		db Queryer
 	}
+
 	type args struct {
-		ctx   context.Context
 		token string
 	}
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -60,18 +74,22 @@ func TestRevokedTokenRepo_AddRevokedToken(t *testing.T) {
 				db: conn,
 			},
 			args: args{
-				ctx:   context.Background(),
 				token: "token",
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			rtr := &RevokedTokenRepo{
 				db: tt.fields.db,
 			}
-			if err := rtr.AddRevokedToken(tt.args.ctx, tt.args.token); (err != nil) != tt.wantErr {
+
+			if err := rtr.AddRevokedToken(context.Background(), tt.args.token); (err != nil) != tt.wantErr {
 				t.Errorf("RevokedTokenRepo.AddRevokedToken() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -79,16 +97,21 @@ func TestRevokedTokenRepo_AddRevokedToken(t *testing.T) {
 }
 
 func TestRevokedTokenRepo_IsRevoked(t *testing.T) {
+	t.Parallel()
+
 	conn, teardown := before(t)
-	defer teardown(t)
+	t.Cleanup(func() {
+		teardown(t)
+	})
 
 	type fields struct {
 		db Queryer
 	}
+
 	type args struct {
-		ctx   context.Context
 		token string
 	}
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -102,7 +125,6 @@ func TestRevokedTokenRepo_IsRevoked(t *testing.T) {
 				db: conn,
 			},
 			args: args{
-				ctx:   context.Background(),
 				token: "token",
 			},
 			want:    false,
@@ -110,15 +132,21 @@ func TestRevokedTokenRepo_IsRevoked(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			rtr := &RevokedTokenRepo{
 				db: tt.fields.db,
 			}
-			got, err := rtr.IsRevoked(tt.args.ctx, tt.args.token)
+
+			got, err := rtr.IsRevoked(context.Background(), tt.args.token)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RevokedTokenRepo.IsRevoked() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if got != tt.want {
 				t.Errorf("RevokedTokenRepo.IsRevoked() = %v, want %v", got, tt.want)
 			}

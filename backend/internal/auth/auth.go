@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -9,9 +10,9 @@ import (
 	"goadmin-backend/internal/domain"
 )
 
-var ErrInvalidToken = fmt.Errorf("invalid token")
+var ErrInvalidToken = errors.New("invalid token")
 
-type AuthService interface {
+type Service interface {
 	VerifyToken(ctx context.Context, tokenString string) (*domain.User, error)
 }
 
@@ -21,14 +22,14 @@ type authService struct {
 	jwtSecret        []byte
 }
 
-func NewAuthService(
+func NewAuthService( //nolint: ireturn // it's a factory function
 	userRepo domain.UserRepository,
-	RevokedTokenRepository domain.RevokedTokenRepository,
+	revokedTokenRepository domain.RevokedTokenRepository,
 	jwtSecret []byte,
-) AuthService {
+) Service {
 	return &authService{
 		userRepo:         userRepo,
-		revokedTokenRepo: RevokedTokenRepository,
+		revokedTokenRepo: revokedTokenRepository,
 		jwtSecret:        jwtSecret,
 	}
 }
@@ -46,12 +47,13 @@ func (a *authService) VerifyToken(
 	if isRevoked {
 		return nil, ErrInvalidToken
 	}
+
 	claims := &domain.JWTClaims{}
 
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		claims,
-		func(token *jwt.Token) (any, error) {
+		func(_ *jwt.Token) (any, error) {
 			return a.jwtSecret, nil
 		},
 	)

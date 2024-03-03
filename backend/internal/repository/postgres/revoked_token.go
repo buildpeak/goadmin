@@ -19,9 +19,10 @@ func NewRevokedTokenRepo(db Queryer) *RevokedTokenRepo {
 
 func (rtr *RevokedTokenRepo) AddRevokedToken(ctx context.Context, token string) error {
 	query := fmt.Sprintf(`INSERT INTO %s (token) VALUES ($1)`, revokedTokenTable)
+
 	_, err := rtr.db.Exec(ctx, query, token)
 	if err != nil {
-		return err
+		return fmt.Errorf("add revoked token error: %w", err)
 	}
 
 	return nil
@@ -34,7 +35,7 @@ func (rtr *RevokedTokenRepo) IsRevoked(ctx context.Context, token string) (bool,
 
 	err := rtr.db.QueryRow(ctx, query, token).Scan(&exists)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("is revoked token error: %w", err)
 	}
 
 	return exists, nil
