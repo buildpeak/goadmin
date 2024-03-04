@@ -6,29 +6,32 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"goadmin-backend/internal/domain"
 )
 
-func strToTime(s string) time.Time { //nolint: unparam // only for testing
+func strToTime(s string) time.Time {
 	t, _ := time.Parse("2006-01-02T15:04:05-07:00", s)
 	localTime, _ := time.LoadLocation("Local")
 
 	return t.In(localTime)
 }
 
-func before(t *testing.T) (*pgx.Conn, func(t *testing.T)) {
+func before(t *testing.T) (*pgxpool.Pool, func(t *testing.T)) {
 	t.Helper()
 
-	conn, err := pgx.Connect(context.Background(), testPgConnStr)
+	ctx := context.Background()
+
+	pool, err := pgxpool.New(ctx, testPgConnStr)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	return conn, func(t *testing.T) {
+	return pool, func(t *testing.T) {
 		t.Helper()
-		conn.Close(context.Background())
+
+		pool.Close()
 	}
 }
 
@@ -41,7 +44,7 @@ func TestNewUserRepo(t *testing.T) {
 	})
 
 	type args struct {
-		db *pgx.Conn
+		db *pgxpool.Pool
 	}
 
 	tests := []struct {
@@ -65,7 +68,10 @@ func TestNewUserRepo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := NewUserRepo(tt.args.db); !reflect.DeepEqual(got, tt.want) {
+			if got := NewUserRepo(tt.args.db); !reflect.DeepEqual(
+				got,
+				tt.want,
+			) {
 				t.Errorf("NewUserRepo() = %v, want %v", got, tt.want)
 			}
 		})
@@ -81,7 +87,7 @@ func Test_UserRepo_FindAll(t *testing.T) {
 	})
 
 	type fields struct {
-		db *pgx.Conn
+		db *pgxpool.Pool
 	}
 
 	type args struct {
@@ -101,7 +107,12 @@ func Test_UserRepo_FindAll(t *testing.T) {
 				db: conn,
 			},
 			args: args{
-				filter: &domain.UserFilter{},
+				filter: &domain.UserFilter{
+					CreatedBetween: [2]time.Time{
+						{},
+						strToTime("2024-02-01T00:00:01+00:00"),
+					},
+				},
 			},
 			want: []domain.User{
 				{
@@ -169,7 +180,13 @@ func Test_UserRepo_FindAll(t *testing.T) {
 
 			got, err := r.FindAll(context.Background(), tt.args.filter)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("UserRepo.FindAll() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf(
+					"UserRepo.FindAll() name = %s error = %v, wantErr %v",
+					tt.name,
+					err,
+					tt.wantErr,
+				)
+
 				return
 			}
 
@@ -189,7 +206,7 @@ func Test_UserRepo_FindByID(t *testing.T) {
 	})
 
 	type fields struct {
-		db *pgx.Conn
+		db *pgxpool.Pool
 	}
 
 	type args struct {
@@ -237,7 +254,12 @@ func Test_UserRepo_FindByID(t *testing.T) {
 
 			got, err := r.FindByID(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("UserRepo.FindByID() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf(
+					"UserRepo.FindByID() error = %v, wantErr %v",
+					err,
+					tt.wantErr,
+				)
+
 				return
 			}
 
@@ -257,7 +279,7 @@ func Test_UserRepo_FindByUsername(t *testing.T) {
 	})
 
 	type fields struct {
-		db *pgx.Conn
+		db *pgxpool.Pool
 	}
 
 	type args struct {
@@ -305,12 +327,21 @@ func Test_UserRepo_FindByUsername(t *testing.T) {
 
 			got, err := r.FindByUsername(context.Background(), tt.args.username)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("UserRepo.FindByUsername() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf(
+					"UserRepo.FindByUsername() error = %v, wantErr %v",
+					err,
+					tt.wantErr,
+				)
+
 				return
 			}
 
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("UserRepo.FindByUsername() = %v, want %v", got, tt.want)
+				t.Errorf(
+					"UserRepo.FindByUsername() = %v, want %v",
+					got,
+					tt.want,
+				)
 			}
 		})
 	}
@@ -325,7 +356,7 @@ func Test_UserRepo_Create(t *testing.T) {
 	})
 
 	type fields struct {
-		db *pgx.Conn
+		db *pgxpool.Pool
 	}
 
 	type args struct {
@@ -378,7 +409,12 @@ func Test_UserRepo_Create(t *testing.T) {
 
 			got, err := r.Create(context.Background(), tt.args.user)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("UserRepo.Create() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf(
+					"UserRepo.Create() error = %v, wantErr %v",
+					err,
+					tt.wantErr,
+				)
+
 				return
 			}
 

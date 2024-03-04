@@ -2,9 +2,9 @@
 pretty = false
 level = "info"
 
-[api_server]
+[api]
 port = 3600
 
 [observability.collector]
 host = "localhost"
-port = 4_317
+port = 4317

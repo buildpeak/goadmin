@@ -2,9 +2,31 @@ package postgres
 
 import (
 	"context"
+	"crypto/rand"
+	"math/big"
 	"reflect"
 	"testing"
 )
+
+func randToken() string {
+	alphabet := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	length := 32
+
+	var result string
+
+	max := big.NewInt(int64(len(alphabet)))
+
+	for i := 0; i < length; i++ {
+		n, err := rand.Int(rand.Reader, max)
+		if err != nil {
+			panic(err)
+		}
+
+		result += string(alphabet[n.Int64()])
+	}
+
+	return result
+}
 
 func TestNewRevokedTokenRepo(t *testing.T) {
 	t.Parallel()
@@ -74,7 +96,7 @@ func TestRevokedTokenRepo_AddRevokedToken(t *testing.T) {
 				db: conn,
 			},
 			args: args{
-				token: "token",
+				token: randToken(),
 			},
 			wantErr: false,
 		},
@@ -125,7 +147,7 @@ func TestRevokedTokenRepo_IsRevoked(t *testing.T) {
 				db: conn,
 			},
 			args: args{
-				token: "token",
+				token: "token9",
 			},
 			want:    false,
 			wantErr: false,

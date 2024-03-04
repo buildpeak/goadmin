@@ -1,0 +1,69 @@
+openapi: 3.0.3
+info:
+  title: GoAdmin
+  version: 1.0.0
+paths:
+  /auth/login:
+    post:
+      summary: Authenticate user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+  /auth/logout:
+    post:
+      summary: Logout user
+      security:
+        - jwtAuth: []
+      responses:
+        '204':
+          description: User logged out successfully
+  /auth/register:
+    post:
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+      responses:
+        '201':
+          description: User registered successfully
+security:
+  - jwtAuth: []
+securitySchemes:
+  jwtAuth:
+    type: apiKey
+    in: header
+    name: Authorization
+    description: JWT token in the format "Bearer <token>"

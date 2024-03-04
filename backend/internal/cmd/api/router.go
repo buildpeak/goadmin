@@ -7,13 +7,16 @@ import (
 )
 
 // NewRouter returns a new router with all routes defined
-func NewRouter(handlers *Handlers) http.Handler {
+func NewRouter(validator *OpenAPIValidator, handlers *Handlers) http.Handler {
 	router := mux.NewRouter()
 
 	authHandler := handlers.AuthHandler
 
 	// public routes
 	router.HandleFunc("/health", handlers.HealthHandler).Methods(http.MethodGet)
+
+	router.Use(validator.Middleware)
+	router.HandleFunc("/auth/login", authHandler.Login).Methods(http.MethodPost)
 
 	// private routes
 	privateRouter := router.PathPrefix("/v1").Subrouter()

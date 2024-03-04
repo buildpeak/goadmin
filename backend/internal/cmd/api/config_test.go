@@ -1,9 +1,23 @@
 package api
 
 import (
+	"os"
 	"reflect"
 	"testing"
 )
+
+func TestMain(m *testing.M) {
+	os.Setenv("ENV", "test")
+	os.Setenv("CONFIG_DIR", "../../../config/api")
+	os.Setenv("GOADMIN_API__AUTH__JWT_SECRET", "secret")
+
+	code := m.Run()
+
+	os.Unsetenv("ENV")
+	os.Unsetenv("CONFIG_DIR")
+
+	os.Exit(code)
+}
 
 func TestNewConfig(t *testing.T) {
 	t.Parallel()
@@ -16,8 +30,8 @@ func TestNewConfig(t *testing.T) {
 		{
 			name: "success",
 			want: &Config{
-				Env:         "development",
-				DatabaseURL: "postgres://localhost:5432/mydb",
+				Env:         "test",
+				DatabaseURL: "postgres://tester:@127.0.0.1:5432/mydb",
 				Log: struct {
 					Level  string `json:"level"`
 					Pretty bool   `json:"pretty"`
@@ -25,7 +39,7 @@ func TestNewConfig(t *testing.T) {
 					Level:  "info",
 					Pretty: true,
 				},
-				APIServer: APIServerConfig{
+				API: ServerConfig{
 					Port: 8080,
 					Auth: struct {
 						JWTSecret string `json:"jwt_secret"`
@@ -36,7 +50,7 @@ func TestNewConfig(t *testing.T) {
 				Observability: ObservabilityConfig{
 					Collector: Collector{
 						Host:               "localhost",
-						Port:               13133,
+						Port:               4317,
 						Headers:            []Header{{Key: "key", Value: "value"}},
 						IsInsecure:         true,
 						WithMetricsEnabled: true,
@@ -59,7 +73,7 @@ func TestNewConfig(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewConfig() = %v, want %v", got, tt.want)
+				t.Errorf("NewConfig() = %+v, want %+v", got, tt.want)
 			}
 		})
 	}

@@ -3,12 +3,14 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"flag"
 	"log"
 	"os"
 	"testing"
 
 	"github.com/buildpeak/sqltestutil"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"go.uber.org/goleak"
 )
 
 // testPgConnStr is the connection string for the test database
@@ -40,6 +42,15 @@ func TestMain(m *testing.M) {
 	}
 
 	sqltestutil.LoadScenario(ctx, db, "./testdata/scenario.yml")
+
+	leak := flag.Bool("leak", false, "leak the container")
+	flag.Parse()
+
+	if *leak {
+		goleak.VerifyTestMain(m)
+
+		return
+	}
 
 	exitCode := m.Run()
 

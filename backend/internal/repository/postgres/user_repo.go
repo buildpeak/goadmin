@@ -31,27 +31,26 @@ func (r *UserRepo) FindAll(ctx context.Context, filter *domain.UserFilter) ([]do
 	where := "1 = 1"
 	args := []interface{}{}
 
+	if filter == nil {
+		filter = &domain.UserFilter{}
+	}
+
 	switch {
 	case filter.FirstName != "":
-		where += " AND first_name = $1"
-
 		args = append(args, filter.FirstName)
+		where += fmt.Sprintf(" AND first_name = $%d", len(args))
 	case filter.LastName != "":
-		where += " AND last_name = $2"
-
 		args = append(args, filter.LastName)
+		where += fmt.Sprintf(" AND last_name = $%d", len(args))
 	case filter.Active != nil:
-		where += " AND active = $3"
-
 		args = append(args, filter.Active)
+		where += fmt.Sprintf(" AND active = $%d", len(args))
 	case filter.Deleted != nil:
-		where += " AND deleted = $4"
-
 		args = append(args, filter.Deleted)
+		where += fmt.Sprintf(" AND deleted = $%d", len(args))
 	case filter.CreatedBetween[0].Before(filter.CreatedBetween[1]):
-		where += " AND created_at BETWEEN $5 AND $6"
-
 		args = append(args, filter.CreatedBetween[0], filter.CreatedBetween[1])
+		where += fmt.Sprintf(" AND created_at BETWEEN $%d AND $%d", len(args)-1, len(args))
 	}
 
 	findAllQuery := fmt.Sprintf(`SELECT * FROM %s WHERE %s ORDER BY id`, userTable, where)
@@ -61,7 +60,7 @@ func (r *UserRepo) FindAll(ctx context.Context, filter *domain.UserFilter) ([]do
 		return nil, err
 	}
 
-	users := make([]domain.User, 0, len(results))
+	users := make([]domain.User, len(results))
 
 	for i, r := range results {
 		users[i] = *r

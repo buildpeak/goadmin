@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/joho/godotenv/autoload"
 
 	"goadmin-backend/internal/auth"
 	"goadmin-backend/internal/cmd/api"
@@ -16,9 +17,9 @@ import (
 )
 
 func main() {
-	returnCode := 0
+	exitCode := 0
 	defer func() {
-		os.Exit(returnCode)
+		os.Exit(exitCode)
 	}()
 
 	apiCtx, cancelAPICtx := context.WithCancel(context.Background())
@@ -29,20 +30,23 @@ func main() {
 	if err != nil {
 		slog.Error("failed to load config: %v", slog.Any("err", err))
 
-		returnCode = 1
+		exitCode = 1
 
 		return
 	}
 
 	// logger
-	logger := logging.NewLogger()
+	logger := logging.NewLogger(
+		logging.WithLevel(cfg.Log.Level),
+		logging.WithPretty(cfg.Log.Pretty),
+	)
 
 	// dbpool
 	dbpool, err := pgxpool.New(apiCtx, cfg.DatabaseURL)
 	if err != nil {
 		logger.Error("failed to connect to database", slog.Any("err", err))
 
-		returnCode = 1
+		exitCode = 1
 
 		return
 	}
@@ -55,12 +59,22 @@ func main() {
 	authService := auth.NewAuthService(
 		userRepo,
 		revokedTokenRepo,
-		[]byte(cfg.APIServer.Auth.JWTSecret),
+		[]byte(cfg.API.Auth.JWTSecret),
 	)
 	userService := user.NewUserService(userRepo)
 
+	// openapi-validator
+	openapiValidator, err := api.NewOpenAPIValidator("")
+	if err != nil {
+		logger.Error("failed to create openapi validator", slog.Any("err", err))
+
+		exitCode = 1
+
+		return
+	}
+
 	// router
-	apiHandler := api.NewRouter(&api.Handlers{
+	apiHandler := api.NewRouter(openapiValidator, &api.Handlers{
 		AuthHandler:   auth.NewHandler(authService),
 		UserHandler:   user.NewHandler(userService),
 		HealthHandler: api.NewHealthHandler(logger),
@@ -74,14 +88,14 @@ func main() {
 	if err != nil {
 		logger.Error("failed to start otel", slog.Any("err", err))
 
-		returnCode = 1
+		exitCode = 1
 
 		return
 	}
 
 	// web server
 	mainAPIServer := api.NewHTTPServer(&api.HTTPServerConfig{
-		Addr: fmt.Sprintf("0.0.0.0:%d", cfg.APIServer.Port),
+		Addr: fmt.Sprintf("0.0.0.0:%d", cfg.API.Port),
 	}, apiHandler)
 
 	go func() {
@@ -93,20 +107,20 @@ func main() {
 	logger.Info("server started", slog.Any("addr", mainAPIServer.Addr))
 
 	// graceful shutdown
-	if err := api.GracefulShutdown(apiCtx, func() error {
+	if err := api.GracefulShutdown(apiCtx, func(shutdownCtx context.Context) error {
 		logger.Info("shutting down server")
 
-		if err := mainAPIServer.Shutdown(apiCtx); err != nil {
+		if err := mainAPIServer.Shutdown(shutdownCtx); err != nil {
 			logger.Error("failed to shutdown server", slog.Any("err", err))
 		}
 
 		return nil
-	}, func() error {
+	}, func(_ context.Context) error {
 		logger.Info("shutting down otel")
 		shutdownOtel()
 
 		return nil
-	}, func() error {
+	}, func(_ context.Context) error {
 		logger.Info("closing database connection")
 		dbpool.Close()
 

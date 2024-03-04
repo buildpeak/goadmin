@@ -1,3 +1,5 @@
+env = "development"
+
 [log]
 pretty = true
 level = "debug"

@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/env"
@@ -10,12 +11,8 @@ import (
 	"github.com/knadh/koanf/v2"
 )
 
-const (
-	configDir = "config/api"
-)
-
-// APIServerConfig is the configuration for the API server.
-type APIServerConfig struct {
+// ServerConfig is the configuration for the API server.
+type ServerConfig struct {
 	Port int `json:"port"`
 	Auth struct {
 		JWTSecret string `json:"jwt_secret"`
@@ -38,7 +35,7 @@ type Config struct {
 	} `json:"log"`
 
 	// APIServer is the configuration for the API server.
-	APIServer APIServerConfig `json:"api_server"`
+	API ServerConfig `json:"api"`
 
 	Observability ObservabilityConfig `json:"observability"`
 }
@@ -48,6 +45,11 @@ func NewConfig() (*Config, error) {
 	environ := os.Getenv("ENV")
 	if environ == "" {
 		environ = "development"
+	}
+
+	configDir := "config/api"
+	if dir := os.Getenv("CONFIG_DIR"); dir != "" {
+		configDir = dir
 	}
 
 	// Load the configuration from the environment.
@@ -63,8 +65,16 @@ func NewConfig() (*Config, error) {
 		return nil, fmt.Errorf("error loading %s config: %w", environ, err)
 	}
 
-	// Load ENV variables
-	if err := knf.Load(env.Provider("GOADMIN_", ".", nil), nil); err != nil {
+	// Load environment variables
+	transformer := func(s string) string {
+		return strings.ReplaceAll(
+			// remove the prefix and turn to lowercase and replace all __ with .
+			strings.ToLower(strings.Replace(s, "GOADMIN_", "", 1)),
+			"__",
+			".",
+		)
+	}
+	if err := knf.Load(env.Provider("GOADMIN_", ".", transformer), nil); err != nil {
 		return nil, fmt.Errorf("error loading `env` config: %w", err)
 	}
 

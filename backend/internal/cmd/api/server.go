@@ -17,6 +17,9 @@ const (
 
 	// DefaultIdleTimeout is the default idle timeout for the HTTP server.
 	DefaultIdleTimeout = 120 * time.Second
+
+	// DefaultShutdownTimeout is the default shutdown timeout for the HTTP server.
+	DefaultShutdownTimeout = 30 * time.Second
 )
 
 // HTTPServerConfig is the configuration for the HTTP server.
@@ -38,7 +41,7 @@ func NewHTTPServer(config *HTTPServerConfig, handler http.Handler) *http.Server 
 }
 
 // GracefulShutdown gracefully shuts down the application.
-func GracefulShutdown(ctx context.Context, closers ...func() error) error {
+func GracefulShutdown(ctx context.Context, closers ...func(context.Context) error) error {
 	sigCtx, sigCtxCancel := signal.NotifyContext(
 		ctx,
 		syscall.SIGINT,
@@ -51,8 +54,20 @@ func GracefulShutdown(ctx context.Context, closers ...func() error) error {
 	// wait for signal
 	<-sigCtx.Done()
 
-	for _, closer := range closers {
-		if err := closer(); err != nil {
+	newCtx, cancel := context.WithTimeout(ctx, DefaultShutdownTimeout)
+	defer cancel()
+
+	errs := make([]error, len(closers))
+
+	for i, closer := range closers {
+		if err := closer(newCtx); err != nil {
+			errs[i] = err
+		}
+	}
+
+	// return the first non-nil error
+	for _, err := range errs {
+		if err != nil {
 			return err
 		}
 	}
