@@ -1,5 +1,6 @@
 package domain
 
+// baseError is a struct that represents the base error type for the API.
 type baseError struct {
 	Type    string `json:"type"`
 	Message string `json:"message"`

@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -57,19 +59,17 @@ func GracefulShutdown(ctx context.Context, closers ...func(context.Context) erro
 	newCtx, cancel := context.WithTimeout(ctx, DefaultShutdownTimeout)
 	defer cancel()
 
-	errs := make([]error, len(closers))
+	errs := make([]error, 0, len(closers))
 
 	for i, closer := range closers {
 		if err := closer(newCtx); err != nil {
-			errs[i] = err
+			errs = append(errs, fmt.Errorf("failed to close closer %d: %w", i, err))
 		}
 	}
 
 	// return the first non-nil error
-	for _, err := range errs {
-		if err != nil {
-			return err
-		}
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil

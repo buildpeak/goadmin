@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,8 +18,13 @@ import (
 	"goadmin-backend/internal/user"
 )
 
+const (
+	// Version is the version of the application.
+	Version = "v0.0.1"
+)
+
 func main() {
-	exitCode := 0
+	exitCode := 1
 	defer func() {
 		os.Exit(exitCode)
 	}()
@@ -29,8 +36,6 @@ func main() {
 	cfg, err := api.NewConfig()
 	if err != nil {
 		slog.Error("failed to load config: %v", slog.Any("err", err))
-
-		exitCode = 1
 
 		return
 	}
@@ -45,8 +50,6 @@ func main() {
 	dbpool, err := pgxpool.New(apiCtx, cfg.DatabaseURL)
 	if err != nil {
 		logger.Error("failed to connect to database", slog.Any("err", err))
-
-		exitCode = 1
 
 		return
 	}
@@ -68,8 +71,6 @@ func main() {
 	if err != nil {
 		logger.Error("failed to create openapi validator", slog.Any("err", err))
 
-		exitCode = 1
-
 		return
 	}
 
@@ -82,13 +83,23 @@ func main() {
 
 	// otel
 	shutdownOtel, err := api.StartOtel(
-		api.ServiceInfo{},
-		api.ObservabilityConfig{},
+		api.ServiceInfo{
+			Name:    "goadmin",
+			Version: Version,
+			Env:     cfg.Env,
+		},
+		api.ObservabilityConfig{
+			Collector: api.Collector{
+				Host:               cfg.Observability.Collector.Host,
+				Port:               cfg.Observability.Collector.Port,
+				Headers:            cfg.Observability.Collector.Headers,
+				IsInsecure:         cfg.Observability.Collector.IsInsecure,
+				WithMetricsEnabled: cfg.Observability.Collector.WithMetricsEnabled,
+			},
+		},
 	)
 	if err != nil {
 		logger.Error("failed to start otel", slog.Any("err", err))
-
-		exitCode = 1
 
 		return
 	}
@@ -99,7 +110,8 @@ func main() {
 	}, apiHandler)
 
 	go func() {
-		if err := mainAPIServer.ListenAndServe(); err != nil {
+		if err := mainAPIServer.ListenAndServe(); err != nil &&
+			!errors.Is(err, http.ErrServerClosed) {
 			logger.Error("failed to start server", slog.Any("err", err))
 			cancelAPICtx()
 		}
@@ -128,4 +140,6 @@ func main() {
 	}); err != nil {
 		logger.Error("failed to shutdown server", slog.Any("err", err))
 	}
+
+	exitCode = 0
 }

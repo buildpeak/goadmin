@@ -31,6 +31,9 @@ linters-settings:
     disabled-checks:
       - whyNoLint
       - unnamedResult
+    settings:
+      hugeParam:
+        sizeThreshold: 128
   errorlint:
     errorf: true
   nolintlint:
