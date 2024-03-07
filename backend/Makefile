@@ -13,12 +13,17 @@ help: ## show this help
 
 SHELL = /bin/bash
 
+BIN_API = bin/api
+BIN_PARSE_CONFIG = bin/tool/parse-config
+
+$(BIN_API):
+	@go build -o $(BIN_API) cmd/api/main.go
+
 test: ## run tests
 	@go test -v -race -cover ./... | sed "/PASS/s//$$(printf '\033[32mPASS\033[0m')/" | sed "/FAIL/s//$$(printf '\033[31mFAIL\033[0m')/"
 
 bench:
 	@go test -bench=. -benchmem ./...
-
 
 ########
 # lint #
@@ -37,11 +42,23 @@ gci-format: ## format repo through gci linter
 ##############
 # db-migrate #
 ##############
-migrate-up: ## run db migration up
-	@go run ./cmd/db-migrate/main.go up
+$(BIN_PARSE_CONFIG):
+	@go build -o $(BIN_PARSE_CONFIG) cmd/tool/parse-config/main.go
 
-migrate-down: ## run db migration down
-	@go run ./cmd/db-migrate/main.go down
+migrate-up: $(BIN_PARSE_CONFIG) ## run db migration up
+	@(\
+		DBURL=$$($(BIN_PARSE_CONFIG) get database_url); \
+		migrate -database $$DBURL -path ./database/migrations up; \
+	)
 
-migrate-create: ## create new migration
-	@go run ./cmd/db-migrate/main.go create
+migrate-down: $(BIN_PARSE_CONFIG) ## run db migration down
+	@(\
+		DBURL=$$($(BIN_PARSE_CONFIG) get database_url); \
+		migrate -database $$DBURL -path ./database/migrations down; \
+	)
+
+migrate-create: $(BIN_PARSE_CONFIG) ## create new migration
+	@(\
+		DBURL=$$($(BIN_PARSE_CONFIG) get database_url); \
+		migrate create -ext sql -dir ./database/migrations $(name); \
+	)

@@ -2,6 +2,10 @@ openapi: 3.0.3
 info:
   title: GoAdmin
   version: 1.0.0
+  description: This is the GoAdmin backend API spec
+  contact:
+    name: buildpeak
+    email: buildpeak@gmail.com
 paths:
   /auth/login:
     post:
@@ -30,6 +34,8 @@ paths:
                 properties:
                   token:
                     type: string
+      description: Sign a user in
+      operationId: auth-login
   /auth/logout:
     post:
       summary: Logout user
@@ -38,6 +44,8 @@ paths:
       responses:
         '204':
           description: User logged out successfully
+      operationId: auth-logout
+      description: Sign a new out
   /auth/register:
     post:
       summary: Register new user
@@ -59,14 +67,24 @@ paths:
                   type: string
                 last_name:
                   type: string
+              required:
+                - username
+                - email
+                - password
+                - first_name
+                - last_name
       responses:
         '201':
           description: User registered successfully
-security:
-  - jwtAuth: []
-securitySchemes:
-  jwtAuth:
-    type: apiKey
-    in: header
-    name: Authorization
-    description: JWT token in the format "Bearer <token>"
+      operationId: auth-register
+      description: Sign a user up
+servers:
+  - url: 'http://localhost:3600'
+    description: Dev
+components:
+  securitySchemes:
+    jwtAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: JWT token in the format "Bearer <token>"

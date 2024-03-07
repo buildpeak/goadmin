@@ -17,6 +17,7 @@ func NewRouter(validator *OpenAPIValidator, handlers *Handlers) http.Handler {
 
 	router.Use(validator.Middleware)
 	router.HandleFunc("/auth/login", authHandler.Login).Methods(http.MethodPost)
+	router.HandleFunc("/auth/register", authHandler.Register).Methods(http.MethodPost)
 
 	// private routes
 	privateRouter := router.PathPrefix("/v1").Subrouter()

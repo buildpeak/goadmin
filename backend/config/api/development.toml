@@ -1,5 +1,7 @@
 env = "development"
 
+database_url = "postgres://goadmin:goadmin@localhost/goadmin?sslmode=disable"
+
 [log]
 pretty = true
 level = "debug"

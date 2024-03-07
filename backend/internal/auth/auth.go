@@ -25,6 +25,7 @@ var (
 type Service interface {
 	Login(ctx context.Context, credentials domain.Credentials) (string, error)
 	VerifyToken(ctx context.Context, tokenString string) (*domain.User, error)
+	Register(ctx context.Context, user *domain.User) (*domain.User, error)
 }
 
 type authService struct {

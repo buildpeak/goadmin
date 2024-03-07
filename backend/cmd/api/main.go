@@ -81,28 +81,28 @@ func main() {
 		HealthHandler: api.NewHealthHandler(logger),
 	})
 
-	// otel
-	shutdownOtel, err := api.StartOtel(
-		api.ServiceInfo{
-			Name:    "goadmin",
-			Version: Version,
-			Env:     cfg.Env,
-		},
-		api.ObservabilityConfig{
-			Collector: api.Collector{
-				Host:               cfg.Observability.Collector.Host,
-				Port:               cfg.Observability.Collector.Port,
-				Headers:            cfg.Observability.Collector.Headers,
-				IsInsecure:         cfg.Observability.Collector.IsInsecure,
-				WithMetricsEnabled: cfg.Observability.Collector.WithMetricsEnabled,
-			},
-		},
-	)
-	if err != nil {
-		logger.Error("failed to start otel", slog.Any("err", err))
-
-		return
-	}
+	// // otel
+	// shutdownOtel, err := api.StartOtel(
+	// 	api.ServiceInfo{
+	// 		Name:    "goadmin",
+	// 		Version: Version,
+	// 		Env:     cfg.Env,
+	// 	},
+	// 	api.ObservabilityConfig{
+	// 		Collector: api.Collector{
+	// 			Host:               cfg.Observability.Collector.Host,
+	// 			Port:               cfg.Observability.Collector.Port,
+	// 			Headers:            cfg.Observability.Collector.Headers,
+	// 			IsInsecure:         cfg.Observability.Collector.IsInsecure,
+	// 			WithMetricsEnabled: cfg.Observability.Collector.WithMetricsEnabled,
+	// 		},
+	// 	},
+	// )
+	// if err != nil {
+	// 	logger.Error("failed to start otel", slog.Any("err", err))
+	//
+	// 	return
+	// }
 
 	// web server
 	mainAPIServer := api.NewHTTPServer(&api.HTTPServerConfig{
@@ -129,7 +129,7 @@ func main() {
 		return nil
 	}, func(_ context.Context) error {
 		logger.Info("shutting down otel")
-		shutdownOtel()
+		// shutdownOtel()
 
 		return nil
 	}, func(_ context.Context) error {
