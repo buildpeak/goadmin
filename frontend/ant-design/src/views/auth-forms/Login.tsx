@@ -12,6 +12,7 @@ import {
   Flex,
   Typography,
 } from "antd";
+import { jwtDecode } from "jwt-decode";
 
 import Logo from "../../components/Logo";
 import "./Login.css";
@@ -34,7 +35,9 @@ const LoginForm: React.FC = () => {
   };
 
   const googleSignInCallback = async (response: GoogleSignInResponse) => {
-    console.log("Encoded JWT ID token: " + response.credential);
+    const decoded = jwtDecode(response.credential);
+
+    console.log(decoded);
   };
 
   useEffect(() => {
@@ -44,27 +47,41 @@ const LoginForm: React.FC = () => {
       scope: "email",
     };
 
-    window.google.accounts.id.initialize({
-      client_id: params.clientId,
-      callback: googleSignInCallback,
-    });
+    let timer: number;
 
-    window.google.accounts.id.renderButton(
-      document.getElementById("googleSignInDiv"),
-      { theme: "outline", size: "large" } // customization attributes
-    );
-    window.google.accounts.id.prompt(); // also display the One Tap dialog
+    const googleAccountInit = () => {
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: params.clientId,
+          callback: googleSignInCallback,
+        });
+
+        window.google.accounts.id.renderButton(
+          document.getElementById("googleSignInDiv"),
+          { theme: "outline", size: "large" } // customization attributes
+        );
+        window.google.accounts.id.prompt(); // also display the One Tap dialog
+
+        clearTimeout(timer);
+      } else {
+        timer = window.setTimeout(googleAccountInit, 100);
+      }
+    };
+
+    googleAccountInit();
+
+    return () => clearTimeout(timer);
   }, []);
 
   return (
     <Row justify="center" className="login-page">
-      <Col xs={22} sm={20} md={12} lg={8} xl={6} xxl={4}>
+      <Col xs={22} sm={22} md={22} lg={22} xl={22} xxl={22}>
         <Flex justify="space-evenly" vertical>
           <Flex justify="center">
             <Logo width={64} />
           </Flex>
           <Typography>
-            <Title level={2}>Sign In</Title>
+            <Title level={3}>Sign In</Title>
           </Typography>
           <Card>
             <Form
@@ -108,7 +125,7 @@ const LoginForm: React.FC = () => {
                 </a>
               </Form.Item>
 
-              <Form.Item>
+              <Form.Item style={{ marginBottom: 0 }}>
                 <Button
                   type="primary"
                   htmlType="submit"

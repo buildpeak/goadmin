@@ -1,4 +1,4 @@
-import logo from "../assets/images/cube.svg";
+import logo from "../assets/images/ding.svg";
 
 type LogoProps = {
   width: number;
