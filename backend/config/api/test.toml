@@ -1,0 +1,22 @@
+env = "test"
+
+database_url = "postgres://tester:@127.0.0.1:5432/mydb"
+
+[log]
+level = "info"
+pretty = true
+
+[api]
+port = 8080
+
+[api.auth]
+jwt_secret = "this_will_be_overwritten_by_env"
+
+[[observability.collector.headers]]
+key = "key"
+value = "value"
+
+
+[observability.collector]
+is_insecure = true
+with_metrics_enabled = true

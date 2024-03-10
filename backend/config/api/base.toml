@@ -1,0 +1,10 @@
+[log]
+pretty = false
+level = "info"
+
+[api]
+port = 3600
+
+[observability.collector]
+host = "localhost"
+port = 4317
