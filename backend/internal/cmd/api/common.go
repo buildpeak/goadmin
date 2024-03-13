@@ -12,24 +12,22 @@ import (
 type Handlers struct {
 	AuthHandler   *auth.Handler
 	UserHandler   *user.Handler
-	HealthHandler http.HandlerFunc
+	HealthHandler *HealthHandler
 }
 
-type healthHandler struct {
-	logger *slog.Logger
+type HealthHandler struct {
+	Logger *slog.Logger
 }
 
 // NewHealthHandler returns a new health handler.
-func NewHealthHandler(logger *slog.Logger) http.HandlerFunc {
-	h := &healthHandler{logger: logger}
-
-	return h.health
+func NewHealthHandler(logger *slog.Logger) *HealthHandler {
+	return &HealthHandler{Logger: logger}
 }
 
-func (h *healthHandler) health(res http.ResponseWriter, _ *http.Request) {
+func (h *HealthHandler) healthCheck(res http.ResponseWriter, _ *http.Request) {
 	res.WriteHeader(http.StatusOK)
 
 	if _, err := res.Write([]byte("OK")); err != nil {
-		h.logger.Error("failed to write response", slog.Any("err", err))
+		h.Logger.Error("failed to write response", slog.Any("err", err))
 	}
 }

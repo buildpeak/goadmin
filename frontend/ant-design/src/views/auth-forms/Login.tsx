@@ -12,10 +12,10 @@ import {
   Flex,
   Typography,
 } from "antd";
-import { jwtDecode } from "jwt-decode";
 
 import Logo from "../../components/Logo";
 import "./Login.css";
+import { verifyGoogleIdToken } from "../../services/google-auth";
 
 const { Title } = Typography;
 
@@ -35,15 +35,15 @@ const LoginForm: React.FC = () => {
   };
 
   const googleSignInCallback = async (response: GoogleSignInResponse) => {
-    const decoded = jwtDecode(response.credential);
+    const idToken = response.credential;
 
-    console.log(decoded);
+    const backendAccessToken = await verifyGoogleIdToken(idToken);
+    console.log(backendAccessToken);
   };
 
   useEffect(() => {
     const params = {
-      clientId:
-        "33550892324-ct318rvjim5q61i846nsg726tb5vo4jm.apps.googleusercontent.com",
+      clientId: process.env.REACT_APP_GOOGLE_CLIENT_ID,
       scope: "email",
     };
 

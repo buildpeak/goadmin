@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"goadmin-backend/internal/cmd/api"
 	"log"
 	"os"
 	"path"
 	"strings"
+
+	"goadmin-backend/internal/cmd/api"
 )
 
 //nolint:cyclop // This is a command line tool

@@ -65,3 +65,40 @@ func (h *Handler) Register(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 }
+
+// SignInWithGoogle handler signs in a user using Google.
+func (h *Handler) SignInWithGoogle(res http.ResponseWriter, req *http.Request) {
+	var idTokenReq GoogleIDTokenVerifyRequest
+
+	if err := json.NewDecoder(req.Body).Decode(&idTokenReq); err != nil {
+		httperr.JSONError(res, err, http.StatusInternalServerError)
+
+		return
+	}
+
+	cookie, err := req.Cookie("g_csrf_token")
+	if err != nil {
+		httperr.JSONError(res, err, http.StatusUnauthorized)
+
+		return
+	}
+
+	if cookie.Value != idTokenReq.GCSRFToken {
+		httperr.JSONError(res, httperr.ErrUnauthorized, http.StatusUnauthorized)
+
+		return
+	}
+
+	user, err := h.authService.VerifyGoogleIDToken(req.Context(), idTokenReq.IDToken)
+	if err != nil {
+		httperr.JSONError(res, err, http.StatusInternalServerError)
+
+		return
+	}
+
+	if err := json.NewEncoder(res).Encode(user); err != nil {
+		httperr.JSONError(res, err, http.StatusInternalServerError)
+
+		return
+	}
+}

@@ -3,27 +3,34 @@ package api
 import (
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"goadmin-backend/internal/cmd/api/routers"
+	"goadmin-backend/internal/platform/httproute"
 )
 
 // NewRouter returns a new router with all routes defined
 func NewRouter(validator *OpenAPIValidator, handlers *Handlers) http.Handler {
-	router := mux.NewRouter()
+	var router httproute.Router
 
-	authHandler := handlers.AuthHandler
+	logger := handlers.HealthHandler.Logger
 
-	// public routes
-	router.HandleFunc("/health", handlers.HealthHandler).Methods(http.MethodGet)
+	// use chi router
+	router = routers.NewChiRouter(logger)
 
 	router.Use(validator.Middleware)
-	router.HandleFunc("/auth/login", authHandler.Login).Methods(http.MethodPost)
-	router.HandleFunc("/auth/register", authHandler.Register).Methods(http.MethodPost)
 
-	// private routes
-	privateRouter := router.PathPrefix("/v1").Subrouter()
-	privateRouter.Use(authHandler.Authenticator())
+	// public routes
+	router.Post("/auth/login", handlers.AuthHandler.Login)
+	router.Post("/auth/register", handlers.AuthHandler.Register)
+	router.Post("/auth/signin-with-google", handlers.AuthHandler.SignInWithGoogle)
 
-	privateRouter.HandleFunc("/users", handlers.UserHandler.List).Methods(http.MethodGet)
+	// add private routes
+	router.Group(func(r httproute.Router) {
+		r.Use(handlers.AuthHandler.Authenticator())
+
+		r.Route("/v1/users", func(r httproute.Router) {
+			r.Get("", handlers.UserHandler.List)
+		})
+	})
 
 	return router
 }

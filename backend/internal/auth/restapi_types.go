@@ -24,3 +24,8 @@ type RegisterRequest struct {
 	FirstName string `json:"first_name" validate:"required"`
 	LastName  string `json:"last_name" validate:"required"`
 }
+
+type GoogleIDTokenVerifyRequest struct {
+	IDToken    string `json:"idToken"`
+	GCSRFToken string `json:"g_csrf_token"`
+}
