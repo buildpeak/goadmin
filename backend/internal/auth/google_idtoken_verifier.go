@@ -9,11 +9,22 @@ import (
 	"goadmin-backend/internal/domain"
 )
 
+// GoogleTokeninfoCall is an interface for the oauth2 package's TokeninfoCall.
+type GoogleTokeninfoCall interface {
+	IdToken(string) GoogleTokeninfoCall
+	Do() (*oauth2.Tokeninfo, error)
+}
+
+// GoogleOAuth2Service is an interface for the oauth2 package's Service.
+type GoogleOAuth2Service interface {
+	Tokeninfo() GoogleTokeninfoCall
+}
+
 func (a *authService) VerifyGoogleIDToken(
 	ctx context.Context,
 	idToken string,
 ) (*domain.User, error) {
-	tokenInfo, err := verifyIDToken(ctx, idToken)
+	tokenInfo, err := verifyIDToken(ctx, a.oauth2Service, idToken)
 	if err != nil {
 		return nil, fmt.Errorf("verifyIDToken: %w", err)
 	}
@@ -28,13 +39,9 @@ func (a *authService) VerifyGoogleIDToken(
 
 func verifyIDToken(
 	ctx context.Context,
+	oauth2Service GoogleOAuth2Service,
 	idToken string,
 ) (*oauth2.Tokeninfo, error) {
-	oauth2Service, err := oauth2.NewService(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("oauth2.NewService: %w", err)
-	}
-
 	tokenInfoCall := oauth2Service.Tokeninfo()
 	tokenInfoCall.IdToken(idToken)
 
@@ -44,4 +51,9 @@ func verifyIDToken(
 	}
 
 	return tokenInfo, nil
+}
+
+// googleTokeninfoCall is a wrapper for the oauth2 package's TokeninfoCall.
+type googleTokeninfoCall struct {
+	*oauth2.TokeninfoCall
 }

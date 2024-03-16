@@ -14,7 +14,7 @@ import (
 
 const (
 	DefaultTokenDuration = 60 * time.Minute
-	DefaultBCryptCost    = 16
+	DefaultBCryptCost    = 15
 )
 
 var (
@@ -32,22 +32,13 @@ type Service interface {
 	) (*domain.User, error)
 }
 
+var _ Service = &authService{}
+
 type authService struct {
 	userRepo         domain.UserRepository
 	revokedTokenRepo domain.RevokedTokenRepository
 	jwtSecret        []byte
-}
-
-func NewAuthService( //nolint: ireturn // it's a factory function
-	userRepo domain.UserRepository,
-	revokedTokenRepository domain.RevokedTokenRepository,
-	jwtSecret []byte,
-) Service {
-	return &authService{
-		userRepo:         userRepo,
-		revokedTokenRepo: revokedTokenRepository,
-		jwtSecret:        jwtSecret,
-	}
+	oauth2Service    GoogleOAuth2Service
 }
 
 func (a *authService) Login(

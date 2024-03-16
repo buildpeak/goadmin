@@ -1,10 +1,31 @@
 package auth
 
 import (
+	"context"
 	"net/http"
-	"reflect"
+	"net/http/httptest"
 	"testing"
+
+	"goadmin-backend/internal/domain"
 )
+
+func newRequestWithToken(token, whereIsToken string) *http.Request {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	if whereIsToken == "header" || whereIsToken == "" {
+		req.Header = http.Header{
+			"Authorization": []string{"Bearer " + token},
+		}
+	} else if whereIsToken == "query" {
+		req.URL.RawQuery = "jwt=" + token
+	} else if whereIsToken == "cookie" {
+		req.AddCookie(&http.Cookie{
+			Name:  "jwt",
+			Value: token,
+		})
+	}
+
+	return req
+}
 
 func TestHandler_Authenticator(t *testing.T) {
 	t.Parallel()
@@ -14,11 +35,50 @@ func TestHandler_Authenticator(t *testing.T) {
 	}
 
 	tests := []struct {
-		name   string
-		fields fields
-		want   func(http.Handler) http.Handler
+		name       string
+		fields     fields
+		req        *http.Request
+		wantStatus int
+		want       string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Test Authenticator() with valid token in header",
+			fields: fields{
+				authService: &ServiceMock{},
+			},
+			req:        newRequestWithToken("good_token", "header"),
+			wantStatus: http.StatusOK,
+			want:       "OK\n",
+		},
+		{
+			name: "Test Authenticator() with valid token in query",
+			fields: fields{
+				authService: &ServiceMock{},
+			},
+			req:        newRequestWithToken("good_token", "query"),
+			wantStatus: http.StatusOK,
+			want:       "OK\n",
+		},
+		{
+			name: "Test Authenticator() with valid token in cookie",
+			fields: fields{
+				authService: &ServiceMock{},
+			},
+			req:        newRequestWithToken("good_token", "cookie"),
+			wantStatus: http.StatusOK,
+			want:       "OK\n",
+		},
+		{
+			name: "Test Authenticator() with invalid token in header",
+			fields: fields{
+				authService: &ServiceMock{
+					hasError: true,
+				},
+			},
+			req:        newRequestWithToken("invalid_token", "header"),
+			wantStatus: http.StatusUnauthorized,
+			want:       "Unauthorized\n",
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -30,8 +90,22 @@ func TestHandler_Authenticator(t *testing.T) {
 				authService: tt.fields.authService,
 			}
 
-			if got := h.Authenticator(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Handler.Authenticator() = %v, want %v", got, tt.want)
+			handler := h.Authenticator()(http.HandlerFunc(func(res http.ResponseWriter, _ *http.Request) {
+				// Do nothing
+				t.Log("Auth passed")
+				res.Write([]byte("OK\n"))
+			}))
+
+			res := httptest.NewRecorder()
+
+			handler.ServeHTTP(res, tt.req)
+
+			if got := res.Code; got != tt.wantStatus {
+				t.Errorf("Handler.Authenticator()(...) Status = %v, want %v", got, tt.wantStatus)
+			}
+
+			if got := res.Body.String(); got != tt.want {
+				t.Errorf("Handler.Authenticator()(...) Body = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -49,7 +123,20 @@ func TestFindToken(t *testing.T) {
 		args args
 		want string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Success",
+			args: args{
+				req: newRequestWithToken("good_token", "header"),
+			},
+			want: "good_token",
+		},
+		{
+			name: "Fail",
+			args: args{
+				req: httptest.NewRequest(http.MethodGet, "/", nil),
+			},
+			want: "",
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -76,7 +163,20 @@ func TestTokenFromHeader(t *testing.T) {
 		args args
 		want string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Success",
+			args: args{
+				req: newRequestWithToken("good_token", "header"),
+			},
+			want: "good_token",
+		},
+		{
+			name: "Fail",
+			args: args{
+				req: httptest.NewRequest(http.MethodGet, "/", nil),
+			},
+			want: "",
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -103,7 +203,20 @@ func TestTokenFromQuery(t *testing.T) {
 		args args
 		want string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Success",
+			args: args{
+				req: newRequestWithToken("good_token", "query"),
+			},
+			want: "good_token",
+		},
+		{
+			name: "Fail",
+			args: args{
+				req: httptest.NewRequest(http.MethodGet, "/", nil),
+			},
+			want: "",
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -130,7 +243,20 @@ func TestTokenFromCookie(t *testing.T) {
 		args args
 		want string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Success",
+			args: args{
+				req: newRequestWithToken("good_token", "cookie"),
+			},
+			want: "good_token",
+		},
+		{
+			name: "Fail",
+			args: args{
+				req: httptest.NewRequest(http.MethodGet, "/", nil),
+			},
+			want: "",
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -143,4 +269,48 @@ func TestTokenFromCookie(t *testing.T) {
 			}
 		})
 	}
+}
+
+var _ Service = &ServiceMock{}
+
+type ServiceMock struct {
+	hasError bool
+}
+
+func (s *ServiceMock) Login(_ context.Context, _ domain.Credentials) (string, error) {
+	if s.hasError {
+		return "", ErrInvalidCredentials
+	}
+
+	return "good_token", nil
+}
+
+func (s *ServiceMock) VerifyToken(_ context.Context, _ string) (*domain.User, error) {
+	if s.hasError {
+		return nil, ErrInvalidToken
+	}
+
+	return &domain.User{
+		ID: "1",
+	}, nil
+}
+
+func (s *ServiceMock) Register(_ context.Context, _ *domain.User) (*domain.User, error) {
+	if s.hasError {
+		return nil, ErrInvalidCredentials
+	}
+
+	return &domain.User{
+		ID: "1",
+	}, nil
+}
+
+func (s *ServiceMock) VerifyGoogleIDToken(_ context.Context, _ string) (*domain.User, error) {
+	if s.hasError {
+		return nil, ErrInvalidToken
+	}
+
+	return &domain.User{
+		ID: "1",
+	}, nil
 }
