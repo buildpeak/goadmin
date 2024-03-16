@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/oauth2/v2"
 
 	"goadmin-backend/internal/domain"
@@ -11,8 +12,8 @@ import (
 
 // GoogleTokeninfoCall is an interface for the oauth2 package's TokeninfoCall.
 type GoogleTokeninfoCall interface {
-	IdToken(string) GoogleTokeninfoCall
-	Do() (*oauth2.Tokeninfo, error)
+	IdToken(string) *oauth2.TokeninfoCall
+	Do(opts ...googleapi.CallOption) (*oauth2.Tokeninfo, error)
 }
 
 // GoogleOAuth2Service is an interface for the oauth2 package's Service.
@@ -24,7 +25,7 @@ func (a *authService) VerifyGoogleIDToken(
 	ctx context.Context,
 	idToken string,
 ) (*domain.User, error) {
-	tokenInfo, err := verifyIDToken(ctx, a.oauth2Service, idToken)
+	tokenInfo, err := verifyIDToken(a.oauth2Service, idToken)
 	if err != nil {
 		return nil, fmt.Errorf("verifyIDToken: %w", err)
 	}
@@ -38,7 +39,6 @@ func (a *authService) VerifyGoogleIDToken(
 }
 
 func verifyIDToken(
-	ctx context.Context,
 	oauth2Service GoogleOAuth2Service,
 	idToken string,
 ) (*oauth2.Tokeninfo, error) {
@@ -53,7 +53,28 @@ func verifyIDToken(
 	return tokenInfo, nil
 }
 
-// googleTokeninfoCall is a wrapper for the oauth2 package's TokeninfoCall.
+// googleOAuth2Service is a concrete implementation of the GoogleOAuth2Service
+// interface.
+type googleOAuth2Service struct {
+	service *oauth2.Service
+}
+
 type googleTokeninfoCall struct {
 	*oauth2.TokeninfoCall
+}
+
+func (g *googleOAuth2Service) Tokeninfo() GoogleTokeninfoCall {
+	return &googleTokeninfoCall{
+		TokeninfoCall: g.service.Tokeninfo(),
+	}
+}
+
+// NewGoogleOAuth2Service returns a new GoogleOAuth2Service.
+func NewGoogleOAuth2Service(
+	service *oauth2.Service,
+	err error,
+) (GoogleOAuth2Service, error) {
+	return &googleOAuth2Service{
+		service: service,
+	}, err
 }

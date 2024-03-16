@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/oauth2/v2"
 
 	"goadmin-backend/internal/domain"
@@ -142,7 +143,6 @@ func Test_verifyIDToken(t *testing.T) {
 			t.Parallel()
 
 			got, err := verifyIDToken(
-				context.Background(),
 				tt.args.oauth2Service,
 				tt.args.idToken,
 			)
@@ -171,11 +171,13 @@ type googleTokeninfoCallMock struct {
 }
 
 //nolint:revive,stylecheck // It's a mock
-func (g *googleTokeninfoCallMock) IdToken(string) GoogleTokeninfoCall {
-	return &googleTokeninfoCallMock{}
+func (g *googleTokeninfoCallMock) IdToken(string) *oauth2.TokeninfoCall {
+	return &oauth2.TokeninfoCall{}
 }
 
-func (g *googleTokeninfoCallMock) Do() (*oauth2.Tokeninfo, error) {
+func (g *googleTokeninfoCallMock) Do(
+	_ ...googleapi.CallOption,
+) (*oauth2.Tokeninfo, error) {
 	if g.hasError {
 		return nil, errors.New("error")
 	}

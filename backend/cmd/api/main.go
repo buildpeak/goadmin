@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/joho/godotenv/autoload"
+	"google.golang.org/api/oauth2/v2"
 
 	"goadmin-backend/internal/auth"
 	"goadmin-backend/internal/cmd/api"
@@ -59,10 +60,21 @@ func main() {
 	revokedTokenRepo := postgres.NewRevokedTokenRepo(dbpool)
 
 	// services
+	googleOauth2Service, err := auth.NewGoogleOAuth2Service(
+		oauth2.NewService(apiCtx),
+	)
+	if err != nil {
+		logger.Error(
+			"failed to create google oauth2 service",
+			slog.Any("err", err),
+		)
+	}
+
 	authService := auth.NewAuthService(
 		userRepo,
 		revokedTokenRepo,
 		[]byte(cfg.API.Auth.JWTSecret),
+		googleOauth2Service,
 	)
 	userService := user.NewUserService(userRepo)
 

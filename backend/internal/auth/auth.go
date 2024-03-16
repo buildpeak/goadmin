@@ -41,6 +41,20 @@ type authService struct {
 	oauth2Service    GoogleOAuth2Service
 }
 
+func NewAuthService(
+	userRepo domain.UserRepository,
+	revokedTokenRepo domain.RevokedTokenRepository,
+	jwtSecret []byte,
+	oauth2Service GoogleOAuth2Service,
+) Service {
+	return &authService{
+		userRepo:         userRepo,
+		revokedTokenRepo: revokedTokenRepo,
+		jwtSecret:        jwtSecret,
+		oauth2Service:    oauth2Service,
+	}
+}
+
 func (a *authService) Login(
 	ctx context.Context,
 	credentials domain.Credentials,

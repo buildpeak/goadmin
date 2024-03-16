@@ -14,50 +14,57 @@ import (
 //nolint:gosec // for unit test
 const passwordHash = "$2a$15$ioZSvZDYml862cyAk1l.x.AEGq77G1u8ruQQuA25Ic/QMpWsNDG/m"
 
-// func TestNewAuthService(t *testing.T) {
-// 	t.Parallel()
-//
-// 	type args struct {
-// 		userRepo         domain.UserRepository
-// 		revokedTokenRepo domain.RevokedTokenRepository
-// 		jwtSecret        []byte
-// 		googleAPISecret  string
-// 	}
-//
-// 	tests := []struct {
-// 		name string
-// 		args args
-// 		want Service
-// 	}{
-// 		{
-// 			name: "Test NewAuthService()",
-// 			args: args{
-// 				userRepo:         &UserRepositoryMock{},
-// 				revokedTokenRepo: &RevokedTokenRepositoryMock{},
-// 				jwtSecret:        []byte("secret"),
-// 			},
-// 			want: &authService{
-// 				userRepo:         &UserRepositoryMock{},
-// 				revokedTokenRepo: &RevokedTokenRepositoryMock{},
-// 				jwtSecret:        []byte("secret"),
-// 			},
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		tt := tt
-//
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			t.Parallel()
-//
-// 			if got := NewAuthService(tt.args...); !reflect.DeepEqual(
-// 				got,
-// 				tt.want,
-// 			) {
-// 				t.Errorf("NewAuthService() = %v, want %v", got, tt.want)
-// 			}
-// 		})
-// 	}
-// }
+func TestNewAuthService(t *testing.T) {
+	t.Parallel()
+
+	type args struct {
+		userRepo         domain.UserRepository
+		revokedTokenRepo domain.RevokedTokenRepository
+		jwtSecret        []byte
+		oauth2Service    GoogleOAuth2Service
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want Service
+	}{
+		{
+			name: "Test NewAuthService()",
+			args: args{
+				userRepo:         &UserRepositoryMock{},
+				revokedTokenRepo: &RevokedTokenRepositoryMock{},
+				jwtSecret:        []byte("secret"),
+				oauth2Service:    &GoogleOAuth2ServiceMock{},
+			},
+			want: &authService{
+				userRepo:         &UserRepositoryMock{},
+				revokedTokenRepo: &RevokedTokenRepositoryMock{},
+				jwtSecret:        []byte("secret"),
+				oauth2Service:    &GoogleOAuth2ServiceMock{},
+			},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := NewAuthService(
+				tt.args.userRepo,
+				tt.args.revokedTokenRepo,
+				tt.args.jwtSecret,
+				tt.args.oauth2Service,
+			); !reflect.DeepEqual(
+				got,
+				tt.want,
+			) {
+				t.Errorf("NewAuthService() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func Test_authService_Login(t *testing.T) {
 	t.Parallel()
@@ -66,6 +73,7 @@ func Test_authService_Login(t *testing.T) {
 		userRepo         domain.UserRepository
 		revokedTokenRepo domain.RevokedTokenRepository
 		jwtSecret        []byte
+		oauth2Service    GoogleOAuth2Service
 	}
 
 	type args struct {
@@ -85,6 +93,7 @@ func Test_authService_Login(t *testing.T) {
 				userRepo:         &UserRepositoryMock{},
 				revokedTokenRepo: &RevokedTokenRepositoryMock{},
 				jwtSecret:        []byte("secret"),
+				oauth2Service:    &GoogleOAuth2ServiceMock{},
 			},
 			args: args{
 				credentials: domain.Credentials{
@@ -100,6 +109,7 @@ func Test_authService_Login(t *testing.T) {
 				userRepo:         &UserRepositoryMock{hasError: true},
 				revokedTokenRepo: &RevokedTokenRepositoryMock{},
 				jwtSecret:        []byte("secret"),
+				oauth2Service:    &GoogleOAuth2ServiceMock{},
 			},
 			args: args{
 				credentials: domain.Credentials{
@@ -120,6 +130,7 @@ func Test_authService_Login(t *testing.T) {
 				userRepo:         tt.fields.userRepo,
 				revokedTokenRepo: tt.fields.revokedTokenRepo,
 				jwtSecret:        tt.fields.jwtSecret,
+				oauth2Service:    tt.fields.oauth2Service,
 			}
 			got, err := a.Login(context.Background(), tt.args.credentials)
 
@@ -147,16 +158,12 @@ func Test_authService_VerifyToken(t *testing.T) {
 		userRepo         domain.UserRepository
 		revokedTokenRepo domain.RevokedTokenRepository
 		jwtSecret        []byte
-	}
-
-	type args struct {
-		tokenString string
+		oauth2Service    GoogleOAuth2Service
 	}
 
 	tests := []struct {
 		name    string
 		fields  fields
-		args    args
 		want    *domain.User
 		wantErr bool
 	}{
@@ -166,13 +173,12 @@ func Test_authService_VerifyToken(t *testing.T) {
 				userRepo:         &UserRepositoryMock{},
 				revokedTokenRepo: &RevokedTokenRepositoryMock{},
 				jwtSecret:        []byte("secret"),
-			},
-			args: args{
-				tokenString: "token",
+				oauth2Service:    &GoogleOAuth2ServiceMock{},
 			},
 			want: &domain.User{
 				ID:       "1",
 				Username: "username",
+				Password: passwordHash,
 			},
 		},
 	}
@@ -186,8 +192,15 @@ func Test_authService_VerifyToken(t *testing.T) {
 				userRepo:         tt.fields.userRepo,
 				revokedTokenRepo: tt.fields.revokedTokenRepo,
 				jwtSecret:        tt.fields.jwtSecret,
+				oauth2Service:    tt.fields.oauth2Service,
 			}
-			got, err := a.VerifyToken(context.Background(), tt.args.tokenString)
+
+			token, _ := a.Login(context.Background(), domain.Credentials{
+				Username: "username",
+				Password: "password",
+			})
+
+			got, err := a.VerifyToken(context.Background(), token)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
@@ -217,20 +230,22 @@ func Test_authService_Logout(t *testing.T) {
 		userRepo         domain.UserRepository
 		revokedTokenRepo domain.RevokedTokenRepository
 		jwtSecret        []byte
-	}
-
-	type args struct {
-		tokenString string
+		oauth2Service    GoogleOAuth2Service
 	}
 
 	tests := []struct {
 		name    string
 		fields  fields
-		args    args
 		wantErr bool
 	}{
 		{
 			name: "Success",
+			fields: fields{
+				userRepo:         &UserRepositoryMock{},
+				revokedTokenRepo: &RevokedTokenRepositoryMock{},
+				jwtSecret:        []byte("secret"),
+				oauth2Service:    &GoogleOAuth2ServiceMock{},
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -243,9 +258,15 @@ func Test_authService_Logout(t *testing.T) {
 				userRepo:         tt.fields.userRepo,
 				revokedTokenRepo: tt.fields.revokedTokenRepo,
 				jwtSecret:        tt.fields.jwtSecret,
+				oauth2Service:    tt.fields.oauth2Service,
 			}
 
-			if err := a.Logout(context.Background(), tt.args.tokenString); (err != nil) != tt.wantErr {
+			token, _ := a.Login(context.Background(), domain.Credentials{
+				Username: "username",
+				Password: "password",
+			})
+
+			if err := a.Logout(context.Background(), token); (err != nil) != tt.wantErr {
 				t.Errorf(
 					"authService.Logout() error = %v, wantErr %v",
 					err,
@@ -263,6 +284,7 @@ func Test_authService_Register(t *testing.T) {
 		userRepo         domain.UserRepository
 		revokedTokenRepo domain.RevokedTokenRepository
 		jwtSecret        []byte
+		oauth2Service    GoogleOAuth2Service
 	}
 
 	type args struct {
@@ -278,6 +300,23 @@ func Test_authService_Register(t *testing.T) {
 	}{
 		{
 			name: "Success",
+			fields: fields{
+				userRepo:         &UserRepositoryMock{},
+				revokedTokenRepo: &RevokedTokenRepositoryMock{},
+				jwtSecret:        []byte("secret"),
+				oauth2Service:    &GoogleOAuth2ServiceMock{},
+			},
+			args: args{
+				user: &domain.User{
+					Username: "username",
+					Password: "password",
+				},
+			},
+			want: &domain.User{
+				ID:       "1",
+				Username: "username",
+				Password: passwordHash,
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -290,6 +329,7 @@ func Test_authService_Register(t *testing.T) {
 				userRepo:         tt.fields.userRepo,
 				revokedTokenRepo: tt.fields.revokedTokenRepo,
 				jwtSecret:        tt.fields.jwtSecret,
+				oauth2Service:    tt.fields.oauth2Service,
 			}
 			got, err := a.Register(context.Background(), tt.args.user)
 
