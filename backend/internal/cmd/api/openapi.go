@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -14,9 +15,13 @@ import (
 
 type OpenAPIValidator struct {
 	validator openapivalidator.Validator
+	logger    *slog.Logger
 }
 
-func NewOpenAPIValidator(oaiPath string) (*OpenAPIValidator, error) {
+func NewOpenAPIValidator(
+	oaiPath string,
+	logger *slog.Logger,
+) (*OpenAPIValidator, error) {
 	if oaiPath == "" {
 		oaiPath = "openapi.yaml"
 	}
@@ -41,17 +46,22 @@ func NewOpenAPIValidator(oaiPath string) (*OpenAPIValidator, error) {
 
 	return &OpenAPIValidator{
 		validator: validator,
+		logger:    logger,
 	}, nil
 }
 
 // Middleware returns a middleware that validates incoming requests against the OpenAPI 3+ document.
 func (v *OpenAPIValidator) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		valid, errs := v.validator.ValidateHttpRequest(req)
+		valid, validationErrs := v.validator.ValidateHttpRequest(req)
 		if !valid {
+			var errs []error
+
 			validationErrItems := make([]httperr.ValidationErrorItem, 0)
 
-			for _, err := range errs {
+			for _, err := range validationErrs {
+				errs = append(errs, err)
+
 				for _, schemaErr := range err.SchemaValidationErrors {
 					validationErrItems = append(
 						validationErrItems,
@@ -62,6 +72,11 @@ func (v *OpenAPIValidator) Middleware(next http.Handler) http.Handler {
 					)
 				}
 			}
+
+			v.logger.Error(
+				"validation error",
+				slog.Any("err", errors.Join(errs...)),
+			)
 
 			validationError := httperr.NewValidationError(
 				req.URL.Path,

@@ -26,6 +26,6 @@ type RegisterRequest struct {
 }
 
 type GoogleIDTokenVerifyRequest struct {
-	IDToken    string `json:"idToken"`
+	IDToken    string `json:"id_token" validate:"required"`
 	GCSRFToken string `json:"g_csrf_token"`
 }

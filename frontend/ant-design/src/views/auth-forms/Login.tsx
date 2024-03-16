@@ -136,9 +136,7 @@ const LoginForm: React.FC = () => {
                 Or <a href="./#">register now!</a>
               </Form.Item>
             </Form>
-          </Card>
-          <Divider>Or</Divider>
-          <Card>
+            <Divider>Or</Divider>
             <Flex justify="center">
               <div id="googleSignInDiv"></div>
             </Flex>

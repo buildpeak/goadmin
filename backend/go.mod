@@ -5,6 +5,7 @@ go 1.22.0
 require (
 	github.com/buildpeak/sqltestutil v1.0.8
 	github.com/go-chi/chi/v5 v5.0.12
+	github.com/go-chi/cors v1.2.1
 	github.com/go-chi/httplog/v2 v2.0.9
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/gorilla/mux v1.8.1

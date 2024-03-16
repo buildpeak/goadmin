@@ -38,6 +38,11 @@ type Config struct {
 	API ServerConfig `json:"api"`
 
 	Observability ObservabilityConfig `json:"observability"`
+
+	Google struct {
+		ClientID     string `json:"client_id"`
+		ClientSecret string `json:"client_secret"`
+	} `json:"google"`
 }
 
 // NewConfig returns a new configuration.

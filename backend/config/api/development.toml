@@ -5,3 +5,7 @@ database_url = "postgres://goadmin:goadmin@localhost/goadmin?sslmode=disable"
 [log]
 pretty = true
 level = "debug"
+
+[google]
+client_id = 'will be replaced by .env file'
+client_secret = 'will be replaced by .env file'

@@ -19,6 +19,8 @@ BIN_PARSE_CONFIG = bin/tool/parse-config
 $(BIN_API):
 	@go build -o $(BIN_API) cmd/api/main.go
 
+GO_MOD_NAME := $(shell go list -m)
+
 test: ## run tests
 	@go test -v -race -cover ./... | sed "/PASS/s//$$(printf '\033[32mPASS\033[0m')/" | sed "/FAIL/s//$$(printf '\033[31mFAIL\033[0m')/"
 
@@ -37,7 +39,7 @@ lint: ## lints the entire codebase
 ###########
 
 gci-format: ## format repo through gci linter
-	gci write ./ --skip-generated -s standard -s default -s "Prefix(goadmin-backend)"
+	gci write ./ --skip-generated -s standard -s default -s "Prefix($(GO_MOD_NAME))"
 
 ##############
 # db-migrate #
@@ -57,8 +59,8 @@ migrate-down: $(BIN_PARSE_CONFIG) ## run db migration down
 		migrate -database $$DBURL -path ./database/migrations down; \
 	)
 
-migrate-create: $(BIN_PARSE_CONFIG) ## create new migration
-	@(\
-		DBURL=$$($(BIN_PARSE_CONFIG) get database_url); \
-		migrate create -ext sql -dir ./database/migrations $(name); \
-	)
+migrate-create: ## create new migration
+	@migrate create -ext sql -dir ./database/migrations $(name)
+
+.test:
+	@echo "GO_MOD_NAME: $(GO_MOD_NAME);"

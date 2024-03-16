@@ -26,7 +26,10 @@ type Service interface {
 	Login(ctx context.Context, credentials domain.Credentials) (string, error)
 	VerifyToken(ctx context.Context, tokenString string) (*domain.User, error)
 	Register(ctx context.Context, user *domain.User) (*domain.User, error)
-	VerifyGoogleIDToken(ctx context.Context, idToken string) (*domain.User, error)
+	VerifyGoogleIDToken(
+		ctx context.Context,
+		idToken string,
+	) (*domain.User, error)
 }
 
 type authService struct {
@@ -60,7 +63,10 @@ func (a *authService) Login(
 		return "", ErrInvalidCredentials
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password))
+	err = bcrypt.CompareHashAndPassword(
+		[]byte(user.Password),
+		[]byte(credentials.Password),
+	)
 	if err != nil {
 		return "", ErrInvalidCredentials
 	}
@@ -141,7 +147,10 @@ func (a *authService) Register(
 	ctx context.Context,
 	user *domain.User,
 ) (*domain.User, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), DefaultBCryptCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword(
+		[]byte(user.Password),
+		DefaultBCryptCost,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("hash password error %w", err)
 	}

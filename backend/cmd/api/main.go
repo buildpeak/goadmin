@@ -67,7 +67,7 @@ func main() {
 	userService := user.NewUserService(userRepo)
 
 	// openapi-validator
-	openapiValidator, err := api.NewOpenAPIValidator("")
+	openapiValidator, err := api.NewOpenAPIValidator("", logger)
 	if err != nil {
 		logger.Error("failed to create openapi validator", slog.Any("err", err))
 
