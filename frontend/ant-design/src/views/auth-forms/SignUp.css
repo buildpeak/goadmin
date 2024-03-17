@@ -1,0 +1,17 @@
+.signup-page {
+  padding: 5% 0 4% 0;
+  margin: auto;
+}
+.signup-form {
+  max-width: 600px;
+}
+.signup-form-agreement {
+  float: left;
+}
+.ant-col-rtl .signup-form-agreement {
+  float: right;
+}
+.signup-form-button {
+  width: 100%;
+  max-width: 300px;
+}
