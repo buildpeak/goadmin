@@ -26,9 +26,10 @@ type Service interface {
 	Login(ctx context.Context, credentials domain.Credentials) (string, error)
 	VerifyToken(ctx context.Context, tokenString string) (*domain.User, error)
 	Register(ctx context.Context, user *domain.User) (*domain.User, error)
-	VerifyGoogleIDToken(
+	ValidateGoogleIDToken(
 		ctx context.Context,
 		idToken string,
+		audience string,
 	) (*domain.User, error)
 }
 
@@ -38,20 +39,23 @@ type authService struct {
 	userRepo         domain.UserRepository
 	revokedTokenRepo domain.RevokedTokenRepository
 	jwtSecret        []byte
-	oauth2Service    GoogleOAuth2Service
+	idTokenValidator GoogleIDTokenValidator
+	audience         string
 }
 
 func NewAuthService(
 	userRepo domain.UserRepository,
 	revokedTokenRepo domain.RevokedTokenRepository,
 	jwtSecret []byte,
-	oauth2Service GoogleOAuth2Service,
+	idTokenValidator GoogleIDTokenValidator,
+	audience string,
 ) Service {
 	return &authService{
 		userRepo:         userRepo,
 		revokedTokenRepo: revokedTokenRepo,
 		jwtSecret:        jwtSecret,
-		oauth2Service:    oauth2Service,
+		idTokenValidator: idTokenValidator,
+		audience:         audience,
 	}
 }
 

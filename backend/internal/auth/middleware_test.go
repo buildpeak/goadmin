@@ -90,22 +90,34 @@ func TestHandler_Authenticator(t *testing.T) {
 				authService: tt.fields.authService,
 			}
 
-			handler := h.Authenticator()(http.HandlerFunc(func(res http.ResponseWriter, _ *http.Request) {
-				// Do nothing
-				t.Log("Auth passed")
-				res.Write([]byte("OK\n"))
-			}))
+			handler := h.Authenticator()(
+				http.HandlerFunc(
+					func(res http.ResponseWriter, _ *http.Request) {
+						// Do nothing
+						t.Log("Auth passed")
+						res.Write([]byte("OK\n"))
+					},
+				),
+			)
 
 			res := httptest.NewRecorder()
 
 			handler.ServeHTTP(res, tt.req)
 
 			if got := res.Code; got != tt.wantStatus {
-				t.Errorf("Handler.Authenticator()(...) Status = %v, want %v", got, tt.wantStatus)
+				t.Errorf(
+					"Handler.Authenticator()(...) Status = %v, want %v",
+					got,
+					tt.wantStatus,
+				)
 			}
 
 			if got := res.Body.String(); got != tt.want {
-				t.Errorf("Handler.Authenticator()(...) Body = %v, want %v", got, tt.want)
+				t.Errorf(
+					"Handler.Authenticator()(...) Body = %v, want %v",
+					got,
+					tt.want,
+				)
 			}
 		})
 	}
@@ -277,7 +289,10 @@ type ServiceMock struct {
 	hasError bool
 }
 
-func (s *ServiceMock) Login(_ context.Context, _ domain.Credentials) (string, error) {
+func (s *ServiceMock) Login(
+	_ context.Context,
+	_ domain.Credentials,
+) (string, error) {
 	if s.hasError {
 		return "", ErrInvalidCredentials
 	}
@@ -285,7 +300,10 @@ func (s *ServiceMock) Login(_ context.Context, _ domain.Credentials) (string, er
 	return "good_token", nil
 }
 
-func (s *ServiceMock) VerifyToken(_ context.Context, _ string) (*domain.User, error) {
+func (s *ServiceMock) VerifyToken(
+	_ context.Context,
+	_ string,
+) (*domain.User, error) {
 	if s.hasError {
 		return nil, ErrInvalidToken
 	}
@@ -295,7 +313,10 @@ func (s *ServiceMock) VerifyToken(_ context.Context, _ string) (*domain.User, er
 	}, nil
 }
 
-func (s *ServiceMock) Register(_ context.Context, _ *domain.User) (*domain.User, error) {
+func (s *ServiceMock) Register(
+	_ context.Context,
+	_ *domain.User,
+) (*domain.User, error) {
 	if s.hasError {
 		return nil, ErrInvalidCredentials
 	}
@@ -305,7 +326,11 @@ func (s *ServiceMock) Register(_ context.Context, _ *domain.User) (*domain.User,
 	}, nil
 }
 
-func (s *ServiceMock) VerifyGoogleIDToken(_ context.Context, _ string) (*domain.User, error) {
+func (s *ServiceMock) ValidateGoogleIDToken(
+	_ context.Context,
+	_ string,
+	_ string,
+) (*domain.User, error) {
 	if s.hasError {
 		return nil, ErrInvalidToken
 	}

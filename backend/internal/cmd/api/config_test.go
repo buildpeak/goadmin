@@ -9,7 +9,7 @@ import (
 func TestMain(m *testing.M) {
 	os.Setenv("ENV", "test")
 	os.Setenv("CONFIG_DIR", "../../../config/api")
-	os.Setenv("GOADMIN_API__AUTH__JWT_SECRET", "secret")
+	os.Setenv("API__AUTH__JWT_SECRET", "secret")
 
 	code := m.Run()
 

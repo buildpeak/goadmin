@@ -21,7 +21,8 @@ func TestNewAuthService(t *testing.T) {
 		userRepo         domain.UserRepository
 		revokedTokenRepo domain.RevokedTokenRepository
 		jwtSecret        []byte
-		oauth2Service    GoogleOAuth2Service
+		idTokenValidator GoogleIDTokenValidator
+		audience         string
 	}
 
 	tests := []struct {
@@ -35,13 +36,15 @@ func TestNewAuthService(t *testing.T) {
 				userRepo:         &UserRepositoryMock{},
 				revokedTokenRepo: &RevokedTokenRepositoryMock{},
 				jwtSecret:        []byte("secret"),
-				oauth2Service:    &GoogleOAuth2ServiceMock{},
+				idTokenValidator: &GoogleIDTokenValidatorMock{},
+				audience:         "audience",
 			},
 			want: &authService{
 				userRepo:         &UserRepositoryMock{},
 				revokedTokenRepo: &RevokedTokenRepositoryMock{},
 				jwtSecret:        []byte("secret"),
-				oauth2Service:    &GoogleOAuth2ServiceMock{},
+				idTokenValidator: &GoogleIDTokenValidatorMock{},
+				audience:         "audience",
 			},
 		},
 	}
@@ -55,7 +58,8 @@ func TestNewAuthService(t *testing.T) {
 				tt.args.userRepo,
 				tt.args.revokedTokenRepo,
 				tt.args.jwtSecret,
-				tt.args.oauth2Service,
+				tt.args.idTokenValidator,
+				tt.args.audience,
 			); !reflect.DeepEqual(
 				got,
 				tt.want,
@@ -73,7 +77,7 @@ func Test_authService_Login(t *testing.T) {
 		userRepo         domain.UserRepository
 		revokedTokenRepo domain.RevokedTokenRepository
 		jwtSecret        []byte
-		oauth2Service    GoogleOAuth2Service
+		idTokenValidator GoogleIDTokenValidator
 	}
 
 	type args struct {
@@ -93,7 +97,7 @@ func Test_authService_Login(t *testing.T) {
 				userRepo:         &UserRepositoryMock{},
 				revokedTokenRepo: &RevokedTokenRepositoryMock{},
 				jwtSecret:        []byte("secret"),
-				oauth2Service:    &GoogleOAuth2ServiceMock{},
+				idTokenValidator: &GoogleIDTokenValidatorMock{},
 			},
 			args: args{
 				credentials: domain.Credentials{
@@ -109,7 +113,7 @@ func Test_authService_Login(t *testing.T) {
 				userRepo:         &UserRepositoryMock{hasError: true},
 				revokedTokenRepo: &RevokedTokenRepositoryMock{},
 				jwtSecret:        []byte("secret"),
-				oauth2Service:    &GoogleOAuth2ServiceMock{},
+				idTokenValidator: &GoogleIDTokenValidatorMock{},
 			},
 			args: args{
 				credentials: domain.Credentials{
@@ -130,7 +134,7 @@ func Test_authService_Login(t *testing.T) {
 				userRepo:         tt.fields.userRepo,
 				revokedTokenRepo: tt.fields.revokedTokenRepo,
 				jwtSecret:        tt.fields.jwtSecret,
-				oauth2Service:    tt.fields.oauth2Service,
+				idTokenValidator: tt.fields.idTokenValidator,
 			}
 			got, err := a.Login(context.Background(), tt.args.credentials)
 
@@ -158,7 +162,7 @@ func Test_authService_VerifyToken(t *testing.T) {
 		userRepo         domain.UserRepository
 		revokedTokenRepo domain.RevokedTokenRepository
 		jwtSecret        []byte
-		oauth2Service    GoogleOAuth2Service
+		idTokenValidator GoogleIDTokenValidator
 	}
 
 	tests := []struct {
@@ -173,7 +177,7 @@ func Test_authService_VerifyToken(t *testing.T) {
 				userRepo:         &UserRepositoryMock{},
 				revokedTokenRepo: &RevokedTokenRepositoryMock{},
 				jwtSecret:        []byte("secret"),
-				oauth2Service:    &GoogleOAuth2ServiceMock{},
+				idTokenValidator: &GoogleIDTokenValidatorMock{},
 			},
 			want: &domain.User{
 				ID:       "1",
@@ -192,7 +196,7 @@ func Test_authService_VerifyToken(t *testing.T) {
 				userRepo:         tt.fields.userRepo,
 				revokedTokenRepo: tt.fields.revokedTokenRepo,
 				jwtSecret:        tt.fields.jwtSecret,
-				oauth2Service:    tt.fields.oauth2Service,
+				idTokenValidator: tt.fields.idTokenValidator,
 			}
 
 			token, _ := a.Login(context.Background(), domain.Credentials{
@@ -230,7 +234,7 @@ func Test_authService_Logout(t *testing.T) {
 		userRepo         domain.UserRepository
 		revokedTokenRepo domain.RevokedTokenRepository
 		jwtSecret        []byte
-		oauth2Service    GoogleOAuth2Service
+		idTokenValidator GoogleIDTokenValidator
 	}
 
 	tests := []struct {
@@ -244,7 +248,7 @@ func Test_authService_Logout(t *testing.T) {
 				userRepo:         &UserRepositoryMock{},
 				revokedTokenRepo: &RevokedTokenRepositoryMock{},
 				jwtSecret:        []byte("secret"),
-				oauth2Service:    &GoogleOAuth2ServiceMock{},
+				idTokenValidator: &GoogleIDTokenValidatorMock{},
 			},
 		},
 	}
@@ -258,7 +262,7 @@ func Test_authService_Logout(t *testing.T) {
 				userRepo:         tt.fields.userRepo,
 				revokedTokenRepo: tt.fields.revokedTokenRepo,
 				jwtSecret:        tt.fields.jwtSecret,
-				oauth2Service:    tt.fields.oauth2Service,
+				idTokenValidator: tt.fields.idTokenValidator,
 			}
 
 			token, _ := a.Login(context.Background(), domain.Credentials{
@@ -284,7 +288,7 @@ func Test_authService_Register(t *testing.T) {
 		userRepo         domain.UserRepository
 		revokedTokenRepo domain.RevokedTokenRepository
 		jwtSecret        []byte
-		oauth2Service    GoogleOAuth2Service
+		idTokenValidator GoogleIDTokenValidator
 	}
 
 	type args struct {
@@ -304,7 +308,7 @@ func Test_authService_Register(t *testing.T) {
 				userRepo:         &UserRepositoryMock{},
 				revokedTokenRepo: &RevokedTokenRepositoryMock{},
 				jwtSecret:        []byte("secret"),
-				oauth2Service:    &GoogleOAuth2ServiceMock{},
+				idTokenValidator: &GoogleIDTokenValidatorMock{},
 			},
 			args: args{
 				user: &domain.User{
@@ -329,7 +333,7 @@ func Test_authService_Register(t *testing.T) {
 				userRepo:         tt.fields.userRepo,
 				revokedTokenRepo: tt.fields.revokedTokenRepo,
 				jwtSecret:        tt.fields.jwtSecret,
-				oauth2Service:    tt.fields.oauth2Service,
+				idTokenValidator: tt.fields.idTokenValidator,
 			}
 			got, err := a.Register(context.Background(), tt.args.user)
 
@@ -361,7 +365,7 @@ func (u *UserRepositoryMock) FindByUsername(
 	_ string,
 ) (*domain.User, error) {
 	if u.hasError {
-		return nil, domain.NewUserNotFoundError("1")
+		return nil, domain.NewResourceNotFoundError("User", "username=username")
 	}
 
 	return &domain.User{
@@ -376,7 +380,7 @@ func (u *UserRepositoryMock) FindByID(
 	_ string,
 ) (*domain.User, error) {
 	if u.hasError {
-		return nil, domain.NewUserNotFoundError("1")
+		return nil, domain.NewResourceNotFoundError("User", "id=1")
 	}
 
 	return &domain.User{
@@ -406,7 +410,7 @@ func (u *UserRepositoryMock) Update(
 	_ *domain.User,
 ) (*domain.User, error) {
 	if u.hasError {
-		return nil, domain.NewUserNotFoundError("1")
+		return nil, domain.NewResourceNotFoundError("User", "id=1")
 	}
 
 	return &domain.User{

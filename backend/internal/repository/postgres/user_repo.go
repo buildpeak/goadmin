@@ -77,7 +77,7 @@ func (r *UserRepo) FindByID(ctx context.Context, usrID string) (*domain.User, er
 	user, err := queryRow[domain.User](ctx, r.db, findByIDQuery, usrID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domain.NewUserNotFoundError(usrID)
+			return nil, domain.NewResourceNotFoundError("User", "id="+usrID)
 		}
 
 		return nil, fmt.Errorf("find user by ID error: %w", err)
@@ -94,7 +94,7 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 	user, err := queryRow[domain.User](ctx, r.db, findByUsernameQuery, username)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domain.NewUserNotFoundError(username)
+			return nil, domain.NewResourceNotFoundError("User", "username="+username)
 		}
 
 		return nil, fmt.Errorf("find user by username error: %w", err)

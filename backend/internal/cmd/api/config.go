@@ -74,12 +74,14 @@ func NewConfig() (*Config, error) {
 	transformer := func(s string) string {
 		return strings.ReplaceAll(
 			// remove the prefix and turn to lowercase and replace all __ with .
-			strings.ToLower(strings.Replace(s, "GOADMIN_", "", 1)),
+			strings.ToLower(
+				strings.Replace(s, "", "", 1), //nolint:gocritic // prefix is empty
+			),
 			"__",
 			".",
 		)
 	}
-	if err := knf.Load(env.Provider("GOADMIN_", ".", transformer), nil); err != nil {
+	if err := knf.Load(env.Provider("", ".", transformer), nil); err != nil {
 		return nil, fmt.Errorf("error loading `env` config: %w", err)
 	}
 

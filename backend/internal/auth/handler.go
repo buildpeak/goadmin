@@ -2,6 +2,8 @@ package auth
 
 import (
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
 
 	"goadmin-backend/internal/domain"
@@ -10,10 +12,11 @@ import (
 
 type Handler struct {
 	authService Service
+	logger      *slog.Logger
 }
 
-func NewHandler(authService Service) *Handler {
-	return &Handler{authService: authService}
+func NewHandler(authService Service, logger *slog.Logger) *Handler {
+	return &Handler{authService: authService, logger: logger}
 }
 
 // Login handler signs in a user.
@@ -21,6 +24,8 @@ func (h *Handler) Login(res http.ResponseWriter, req *http.Request) {
 	var credentials domain.Credentials
 
 	if err := json.NewDecoder(req.Body).Decode(&credentials); err != nil {
+		h.logger.Error("error decoding credentials", slog.Any("err", err))
+
 		http.Error(res, "invalid request", http.StatusBadRequest)
 
 		return
@@ -28,12 +33,16 @@ func (h *Handler) Login(res http.ResponseWriter, req *http.Request) {
 
 	token, err := h.authService.Login(req.Context(), credentials)
 	if err != nil {
+		h.logger.Error("error logging in", slog.Any("err", err))
+
 		httperr.JSONError(res, err, http.StatusInternalServerError)
 
 		return
 	}
 
 	if _, err := res.Write([]byte(token)); err != nil {
+		h.logger.Error("error writing token", slog.Any("err", err))
+
 		httperr.JSONError(res, err, http.StatusInternalServerError)
 
 		return
@@ -45,6 +54,8 @@ func (h *Handler) Register(res http.ResponseWriter, req *http.Request) {
 	var user domain.User
 
 	if err := json.NewDecoder(req.Body).Decode(&user); err != nil {
+		h.logger.Error("error decoding user", slog.Any("err", err))
+
 		httperr.JSONError(res, err, http.StatusInternalServerError)
 
 		return
@@ -52,6 +63,8 @@ func (h *Handler) Register(res http.ResponseWriter, req *http.Request) {
 
 	newUser, err := h.authService.Register(req.Context(), &user)
 	if err != nil {
+		h.logger.Error("error registering user", slog.Any("err", err))
+
 		httperr.JSONError(res, err, http.StatusInternalServerError)
 
 		return
@@ -60,6 +73,8 @@ func (h *Handler) Register(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusCreated)
 
 	if err := json.NewEncoder(res).Encode(newUser); err != nil {
+		h.logger.Error("error encoding user", slog.Any("err", err))
+
 		httperr.JSONError(res, err, http.StatusInternalServerError)
 
 		return
@@ -71,19 +86,46 @@ func (h *Handler) SignInWithGoogle(res http.ResponseWriter, req *http.Request) {
 	var idTokenReq GoogleIDTokenVerifyRequest
 
 	if err := json.NewDecoder(req.Body).Decode(&idTokenReq); err != nil {
+		h.logger.Error("error decoding id token request", slog.Any("err", err))
+
 		httperr.JSONError(res, err, http.StatusInternalServerError)
 
 		return
 	}
 
-	user, err := h.authService.VerifyGoogleIDToken(req.Context(), idTokenReq.IDToken)
+	user, err := h.authService.ValidateGoogleIDToken(
+		req.Context(),
+		idTokenReq.IDToken,
+		"", // Use the default audience
+	)
 	if err != nil {
+		if errors.Is(err, ErrInvalidIDToken) {
+			h.logger.Error("error validating google id token", slog.Any("err", err))
+
+			httperr.JSONError(res, err, http.StatusUnauthorized)
+
+			return
+		}
+
+		var userNotFoundErr *domain.ResourceNotFoundError
+		if errors.As(err, &userNotFoundErr) {
+			h.logger.Error("error finding user", slog.Any("err", userNotFoundErr))
+
+			httperr.JSONError(res, userNotFoundErr, http.StatusNotFound)
+
+			return
+		}
+
+		h.logger.Error("error validating google id token", slog.Any("err", err))
+
 		httperr.JSONError(res, err, http.StatusInternalServerError)
 
 		return
 	}
 
 	if err := json.NewEncoder(res).Encode(user); err != nil {
+		h.logger.Error("error encoding user", slog.Any("err", err))
+
 		httperr.JSONError(res, err, http.StatusInternalServerError)
 
 		return
