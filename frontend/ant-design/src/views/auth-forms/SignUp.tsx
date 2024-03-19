@@ -14,6 +14,11 @@ import {
 } from "antd";
 import Logo from "../../components/Logo";
 import "./SignUp.css";
+import {
+  ProFormCheckbox,
+  ProFormRadio,
+  ProFormText,
+} from "@ant-design/pro-components";
 
 const { Title } = Typography;
 
@@ -32,7 +37,18 @@ const SignUpForm: React.FC = () => {
       sm: { span: 16 },
     },
   };
-  const tailFormItemLayout = {};
+  const tailFormItemLayout = {
+    wrapperCol: {
+      xs: {
+        span: 24,
+        offset: 0,
+      },
+      sm: {
+        span: 16,
+        offset: 8,
+      },
+    },
+  };
 
   const onFinish = async (values: any) => {
     console.log(values);
@@ -72,19 +88,30 @@ const SignUpForm: React.FC = () => {
             <Title level={3}>Sign Up</Title>
           </Typography>
           <Flex justify="center">
-            <Card>
+            <Card className="signup-form">
               <Form
                 {...formItemLayout}
                 form={form}
                 name="register"
-                className="signup-form"
                 onFinish={onFinish}
                 scrollToFirstError
               >
                 {contextHolder}
-                <Form.Item
+                <ProFormText
+                  name="username"
+                  label="Username"
+                  placeholder="Username"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input your username!",
+                    },
+                  ]}
+                />
+                <ProFormText
                   name="email"
-                  label="E-mail"
+                  label="Email"
+                  placeholder="Email"
                   rules={[
                     {
                       type: "email",
@@ -95,12 +122,11 @@ const SignUpForm: React.FC = () => {
                       message: "Please input your E-mail!",
                     },
                   ]}
-                >
-                  <Input />
-                </Form.Item>
-                <Form.Item
+                />
+                <ProFormText.Password
                   name="password"
                   label="Password"
+                  placeholder="Password"
                   rules={[
                     {
                       required: true,
@@ -108,12 +134,11 @@ const SignUpForm: React.FC = () => {
                     },
                   ]}
                   hasFeedback
-                >
-                  <Input.Password />
-                </Form.Item>
-                <Form.Item
+                />
+                <ProFormText.Password
                   name="confirm"
                   label="Confirm Password"
+                  placeholder="Confirm Password"
                   dependencies={["password"]}
                   hasFeedback
                   rules={[
@@ -134,13 +159,12 @@ const SignUpForm: React.FC = () => {
                       },
                     }),
                   ]}
-                >
-                  <Input.Password />
-                </Form.Item>
-                <Form.Item
+                />
+                <ProFormText
                   name="full_name"
                   label="Full Name"
-                  tooltip="Your full name."
+                  placeholder="Full Name"
+                  tooltip="Your full name: First Name, Last Name."
                   rules={[
                     {
                       required: true,
@@ -148,13 +172,22 @@ const SignUpForm: React.FC = () => {
                       whitespace: true,
                     },
                   ]}
-                >
-                  <Input />
-                </Form.Item>
+                />
 
-                <Form.Item
+                <ProFormCheckbox.Group
                   name="agreement"
                   valuePropName="checked"
+                  label="Agreement"
+                  options={[
+                    {
+                      label: (
+                        <>
+                          I have read the <a href="/terms.txt">agreement</a>
+                        </>
+                      ),
+                      value: "agree",
+                    },
+                  ]}
                   rules={[
                     {
                       validator: (_, value) =>
@@ -166,11 +199,7 @@ const SignUpForm: React.FC = () => {
                     },
                   ]}
                   {...tailFormItemLayout}
-                >
-                  <Checkbox>
-                    I have read the <a href="/terms.txt">agreement</a>
-                  </Checkbox>
-                </Form.Item>
+                />
 
                 <Form.Item {...tailFormItemLayout}>
                   <Button

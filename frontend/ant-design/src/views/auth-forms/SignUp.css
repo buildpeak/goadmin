@@ -4,6 +4,7 @@
 }
 .signup-form {
   max-width: 600px;
+  width: 100%;
 }
 .signup-form-agreement {
   float: left;

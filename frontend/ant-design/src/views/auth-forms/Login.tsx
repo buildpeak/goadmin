@@ -133,7 +133,7 @@ const LoginForm: React.FC = () => {
                 >
                   Log in
                 </Button>
-                Or <a href="./#">register now!</a>
+                Or <a href="./signup">Sign up now!</a>
               </Form.Item>
             </Form>
             <Divider>Or</Divider>
