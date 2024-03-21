@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 
 import {
   Button,
@@ -14,44 +14,41 @@ import {
 } from "antd";
 import Logo from "../../components/Logo";
 import "./SignUp.css";
-import {
-  ProFormCheckbox,
-  ProFormRadio,
-  ProFormText,
-} from "@ant-design/pro-components";
+import { jwtDecode } from "jwt-decode";
+import { GoogleJwtPayload } from "./data-types";
 
 const { Title } = Typography;
 
 const SignUpForm: React.FC = () => {
   const [form] = Form.useForm();
-
   const [messageApi, contextHolder] = message.useMessage();
 
   const formItemLayout = {
-    labelCol: {
-      xs: { span: 24 },
-      sm: { span: 8 },
-    },
-    wrapperCol: {
-      xs: { span: 24 },
-      sm: { span: 16 },
-    },
-  };
-  const tailFormItemLayout = {
-    wrapperCol: {
-      xs: {
-        span: 24,
-        offset: 0,
-      },
-      sm: {
-        span: 16,
-        offset: 8,
-      },
-    },
+    labelCol: { span: 8 },
+    wrapperCol: { span: 16 },
   };
 
+  useEffect(() => {
+    const googleIdToken = localStorage.getItem("googleIdToken");
+    if (!googleIdToken) {
+      return;
+    }
+
+    const userInfo = jwtDecode(googleIdToken) as GoogleJwtPayload;
+
+    form.setFieldsValue({
+      username: userInfo.email,
+      email: userInfo.email,
+      full_name: userInfo.name,
+    });
+
+    form.getFieldInstance("email").input.disabled = true;
+  }, [form]);
+
   const onFinish = async (values: any) => {
-    console.log(values);
+    console.log(JSON.stringify(values));
+
+    messageApi.loading("Registering...");
     // try {
     //   const data = await register(values);
     //
@@ -92,26 +89,28 @@ const SignUpForm: React.FC = () => {
               <Form
                 {...formItemLayout}
                 form={form}
+                layout="horizontal"
                 name="register"
                 onFinish={onFinish}
                 scrollToFirstError
               >
                 {contextHolder}
-                <ProFormText
+                <Form.Item
                   name="username"
                   label="Username"
-                  placeholder="Username"
                   rules={[
                     {
                       required: true,
                       message: "Please input your username!",
                     },
                   ]}
-                />
-                <ProFormText
+                >
+                  <Input placeholder="Username" />
+                </Form.Item>
+
+                <Form.Item
                   name="email"
                   label="Email"
-                  placeholder="Email"
                   rules={[
                     {
                       type: "email",
@@ -122,11 +121,13 @@ const SignUpForm: React.FC = () => {
                       message: "Please input your E-mail!",
                     },
                   ]}
-                />
-                <ProFormText.Password
+                >
+                  <Input placeholder="Email" />
+                </Form.Item>
+
+                <Form.Item
                   name="password"
                   label="Password"
-                  placeholder="Password"
                   rules={[
                     {
                       required: true,
@@ -134,11 +135,13 @@ const SignUpForm: React.FC = () => {
                     },
                   ]}
                   hasFeedback
-                />
-                <ProFormText.Password
+                >
+                  <Input.Password placeholder="Password" />
+                </Form.Item>
+
+                <Form.Item
                   name="confirm"
                   label="Confirm Password"
-                  placeholder="Confirm Password"
                   dependencies={["password"]}
                   hasFeedback
                   rules={[
@@ -159,11 +162,13 @@ const SignUpForm: React.FC = () => {
                       },
                     }),
                   ]}
-                />
-                <ProFormText
+                >
+                  <Input.Password placeholder="Confirm Password" />
+                </Form.Item>
+
+                <Form.Item
                   name="full_name"
                   label="Full Name"
-                  placeholder="Full Name"
                   tooltip="Your full name: First Name, Last Name."
                   rules={[
                     {
@@ -172,22 +177,14 @@ const SignUpForm: React.FC = () => {
                       whitespace: true,
                     },
                   ]}
-                />
+                >
+                  <Input placeholder="Full Name" />
+                </Form.Item>
 
-                <ProFormCheckbox.Group
+                <Form.Item
+                  wrapperCol={{ span: 24 }}
                   name="agreement"
                   valuePropName="checked"
-                  label="Agreement"
-                  options={[
-                    {
-                      label: (
-                        <>
-                          I have read the <a href="/terms.txt">agreement</a>
-                        </>
-                      ),
-                      value: "agree",
-                    },
-                  ]}
                   rules={[
                     {
                       validator: (_, value) =>
@@ -198,10 +195,13 @@ const SignUpForm: React.FC = () => {
                             ),
                     },
                   ]}
-                  {...tailFormItemLayout}
-                />
+                >
+                  <Checkbox>
+                    I have read the <a href="/terms.txt">agreement</a>
+                  </Checkbox>
+                </Form.Item>
 
-                <Form.Item {...tailFormItemLayout}>
+                <Form.Item wrapperCol={{ span: 24 }}>
                   <Button
                     type="primary"
                     htmlType="submit"

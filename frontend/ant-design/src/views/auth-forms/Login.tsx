@@ -37,6 +37,8 @@ const LoginForm: React.FC = () => {
   const googleSignInCallback = async (response: GoogleSignInResponse) => {
     const idToken = response.credential;
 
+    localStorage.setItem("googleIdToken", idToken);
+
     const backendAccessToken = await verifyGoogleIdToken(idToken);
     console.log(backendAccessToken);
   };
