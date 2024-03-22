@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	DefaultTokenDuration = 60 * time.Minute
-	DefaultBCryptCost    = 15
+	DefaultTokenDuration        = 60 * time.Minute
+	DefaultRefreshTokenDuration = 24 * time.Hour
+	DefaultBCryptCost           = 15
 )
 
 var (
@@ -23,14 +24,13 @@ var (
 )
 
 type Service interface {
-	Login(ctx context.Context, credentials domain.Credentials) (string, error)
+	Login(ctx context.Context, credentials domain.Credentials) (*domain.JWTToken, error)
 	VerifyToken(ctx context.Context, tokenString string) (*domain.User, error)
 	Register(ctx context.Context, user *domain.User) (*domain.User, error)
 	ValidateGoogleIDToken(
 		ctx context.Context,
-		idToken string,
-		audience string,
-	) (*domain.User, error)
+		idToken, audience string,
+	) (*domain.JWTToken, error)
 }
 
 var _ Service = &authService{}
@@ -62,14 +62,14 @@ func NewAuthService(
 func (a *authService) Login(
 	ctx context.Context,
 	credentials domain.Credentials,
-) (string, error) {
+) (*domain.JWTToken, error) {
 	user, err := a.userRepo.FindByUsername(ctx, credentials.Username)
 	if err != nil {
-		return "", fmt.Errorf("find user error %w", err)
+		return nil, fmt.Errorf("find user error %w", err)
 	}
 
 	if user == nil {
-		return "", ErrInvalidCredentials
+		return nil, ErrInvalidCredentials
 	}
 
 	err = bcrypt.CompareHashAndPassword(
@@ -77,12 +77,16 @@ func (a *authService) Login(
 		[]byte(credentials.Password),
 	)
 	if err != nil {
-		return "", ErrInvalidCredentials
+		return nil, ErrInvalidCredentials
 	}
 
+	return a.generateToken(user.Username)
+}
+
+func (a *authService) generateToken(username string) (*domain.JWTToken, error) {
 	expirationTime := time.Now().Add(DefaultTokenDuration)
 	claims := &domain.JWTClaims{
-		Username: credentials.Username,
+		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 		},
@@ -92,10 +96,29 @@ func (a *authService) Login(
 
 	tokenString, err := token.SignedString(a.jwtSecret)
 	if err != nil {
-		return "", fmt.Errorf("sign token error %w", err)
+		return nil, fmt.Errorf("sign token error %w", err)
 	}
 
-	return tokenString, nil
+	// Create the refresh token with longer expiry
+	refreshTokenExpirationTime := time.Now().Add(DefaultRefreshTokenDuration)
+	refreshClaims := &domain.JWTClaims{
+		Username: "username",
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(refreshTokenExpirationTime),
+		},
+	}
+
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
+
+	refreshTokenString, err := refreshToken.SignedString(a.jwtSecret)
+	if err != nil {
+		return nil, fmt.Errorf("sign refresh token error %w", err)
+	}
+
+	return &domain.JWTToken{
+		AccessToken:  tokenString,
+		RefreshToken: refreshTokenString,
+	}, nil
 }
 
 // VerifyToken checks if the token is valid and not revoked

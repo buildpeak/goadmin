@@ -54,7 +54,7 @@ paths:
           description: User logged out successfully
       operationId: auth-logout
       description: Sign a new out
-  /auth/register:
+  /auth/signup:
     post:
       summary: Register new user
       requestBody:

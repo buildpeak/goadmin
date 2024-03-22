@@ -292,12 +292,14 @@ type ServiceMock struct {
 func (s *ServiceMock) Login(
 	_ context.Context,
 	_ domain.Credentials,
-) (string, error) {
+) (*domain.JWTToken, error) {
 	if s.hasError {
-		return "", ErrInvalidCredentials
+		return nil, ErrInvalidCredentials
 	}
 
-	return "good_token", nil
+	return &domain.JWTToken{
+		AccessToken: "good_token",
+	}, nil
 }
 
 func (s *ServiceMock) VerifyToken(
@@ -330,12 +332,12 @@ func (s *ServiceMock) ValidateGoogleIDToken(
 	_ context.Context,
 	_ string,
 	_ string,
-) (*domain.User, error) {
+) (*domain.JWTToken, error) {
 	if s.hasError {
 		return nil, ErrInvalidToken
 	}
 
-	return &domain.User{
-		ID: "1",
+	return &domain.JWTToken{
+		AccessToken: "good_token",
 	}, nil
 }

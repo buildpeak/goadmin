@@ -40,7 +40,7 @@ func (h *Handler) Login(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if _, err := res.Write([]byte(token)); err != nil {
+	if err := json.NewEncoder(res).Encode(token); err != nil {
 		h.logger.Error("error writing token", slog.Any("err", err))
 
 		httperr.JSONError(res, err, http.StatusInternalServerError)
@@ -72,7 +72,7 @@ func (h *Handler) Register(res http.ResponseWriter, req *http.Request) {
 
 	res.WriteHeader(http.StatusCreated)
 
-	if err := json.NewEncoder(res).Encode(newUser); err != nil {
+	if err := json.NewEncoder(res).Encode(ToUserResponse(newUser)); err != nil {
 		h.logger.Error("error encoding user", slog.Any("err", err))
 
 		httperr.JSONError(res, err, http.StatusInternalServerError)
@@ -93,12 +93,13 @@ func (h *Handler) SignInWithGoogle(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	user, err := h.authService.ValidateGoogleIDToken(
+	token, err := h.authService.ValidateGoogleIDToken(
 		req.Context(),
 		idTokenReq.IDToken,
 		"", // Use the default audience
 	)
 	if err != nil {
+		// invalid id_token
 		if errors.Is(err, ErrInvalidIDToken) {
 			h.logger.Error("error validating google id token", slog.Any("err", err))
 
@@ -107,6 +108,7 @@ func (h *Handler) SignInWithGoogle(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 
+		// user not found
 		var userNotFoundErr *domain.ResourceNotFoundError
 		if errors.As(err, &userNotFoundErr) {
 			h.logger.Error("error finding user", slog.Any("err", userNotFoundErr))
@@ -116,6 +118,7 @@ func (h *Handler) SignInWithGoogle(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 
+		// other errors
 		h.logger.Error("error validating google id token", slog.Any("err", err))
 
 		httperr.JSONError(res, err, http.StatusInternalServerError)
@@ -123,7 +126,7 @@ func (h *Handler) SignInWithGoogle(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := json.NewEncoder(res).Encode(user); err != nil {
+	if err := json.NewEncoder(res).Encode(token); err != nil {
 		h.logger.Error("error encoding user", slog.Any("err", err))
 
 		httperr.JSONError(res, err, http.StatusInternalServerError)

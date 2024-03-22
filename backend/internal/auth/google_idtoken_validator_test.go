@@ -3,11 +3,12 @@ package auth
 import (
 	"context"
 	"errors"
-	"goadmin-backend/internal/domain"
 	"reflect"
 	"testing"
 
 	"google.golang.org/api/idtoken"
+
+	"goadmin-backend/internal/domain"
 )
 
 func Test_authService_VerifyGoogleIDToken(t *testing.T) {
@@ -29,7 +30,7 @@ func Test_authService_VerifyGoogleIDToken(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *domain.User
+		want    *domain.JWTToken
 		wantErr bool
 	}{
 		{
@@ -44,10 +45,9 @@ func Test_authService_VerifyGoogleIDToken(t *testing.T) {
 				idToken:  "idToken",
 				audience: "audience",
 			},
-			want: &domain.User{
-				ID:       "1",
-				Username: "username",
-				Password: passwordHash,
+			want: &domain.JWTToken{
+				AccessToken:  "access_token",
+				RefreshToken: "refresh_token",
 			},
 		},
 		{
@@ -121,5 +121,8 @@ func (g *GoogleIDTokenValidatorMock) Validate(
 		return nil, errors.New("error")
 	}
 
-	return &idtoken.Payload{}, nil
+	return &idtoken.Payload{
+		Subject: "subject",
+		Claims:  map[string]interface{}{"email": "email"},
+	}, nil
 }

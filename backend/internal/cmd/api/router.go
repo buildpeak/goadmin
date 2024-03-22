@@ -21,7 +21,7 @@ func NewRouter(validator *OpenAPIValidator, handlers *Handlers) http.Handler {
 	// public routes
 	router.Get("/health", handlers.HealthHandler.healthCheck)
 	router.Post("/auth/login", handlers.AuthHandler.Login)
-	router.Post("/auth/register", handlers.AuthHandler.Register)
+	router.Post("/auth/signup", handlers.AuthHandler.Register)
 	router.Post("/auth/signin-with-google", handlers.AuthHandler.SignInWithGoogle)
 
 	// add private routes

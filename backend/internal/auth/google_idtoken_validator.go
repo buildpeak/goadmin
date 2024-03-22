@@ -21,7 +21,7 @@ func (a *authService) ValidateGoogleIDToken(
 	ctx context.Context,
 	idToken string,
 	audience string,
-) (*domain.User, error) {
+) (*domain.JWTToken, error) {
 	if audience == "" {
 		audience = a.audience
 	}
@@ -31,10 +31,12 @@ func (a *authService) ValidateGoogleIDToken(
 		return nil, errors.Join(ErrInvalidIDToken, err)
 	}
 
+	fmt.Printf("tokenInfo: %+v", tokenInfo)
+
 	user, err := a.userRepo.FindByUsername(ctx, tokenInfo.Claims["email"].(string))
 	if err != nil {
 		return nil, fmt.Errorf("error find user by username: %w", err)
 	}
 
-	return user, nil
+	return a.generateToken(user.Username)
 }

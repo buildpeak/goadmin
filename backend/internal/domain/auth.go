@@ -16,6 +16,11 @@ type Credentials struct {
 	Password string `json:"password"`
 }
 
+type JWTToken struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
 // RoleRepository defines the methods that a role repository should implement
 type RevokedTokenRepository interface {
 	AddRevokedToken(ctx context.Context, token string) error

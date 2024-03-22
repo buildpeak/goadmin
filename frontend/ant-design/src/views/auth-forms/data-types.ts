@@ -13,3 +13,7 @@ export interface GoogleJwtPayload extends JwtPayload {
   picture: string;
   sub: string;
 }
+
+export interface SignUpResultProps {
+  username: string;
+}

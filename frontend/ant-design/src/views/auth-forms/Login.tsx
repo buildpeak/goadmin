@@ -15,7 +15,7 @@ import {
 
 import Logo from "../../components/Logo";
 import "./Login.css";
-import { verifyGoogleIdToken } from "../../services/google-auth";
+import { verifyGoogleIdToken } from "../../services/backend-api";
 
 const { Title } = Typography;
 

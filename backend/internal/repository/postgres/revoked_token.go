@@ -5,8 +5,6 @@ import (
 	"fmt"
 )
 
-const revokedTokenTable = "revoked_token"
-
 type RevokedTokenRepo struct {
 	db Queryer
 }

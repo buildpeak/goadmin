@@ -12,10 +12,6 @@ import (
 
 var _ domain.UserRepository = &UserRepo{}
 
-const (
-	userTable = `"user"`
-)
-
 type UserRepo struct {
 	db Queryer
 }

@@ -16,6 +16,8 @@ import Logo from "../../components/Logo";
 import "./SignUp.css";
 import { jwtDecode } from "jwt-decode";
 import { GoogleJwtPayload } from "./data-types";
+import { doesStatusMatch, signUp } from "../../services/backend-api";
+import SignUpResult from "./SignUpResult";
 
 const { Title } = Typography;
 
@@ -48,30 +50,23 @@ const SignUpForm: React.FC = () => {
   const onFinish = async (values: any) => {
     console.log(JSON.stringify(values));
 
-    messageApi.loading("Registering...");
-    // try {
-    //   const data = await register(values);
-    //
-    //   console.log(data);
-    //
-    //   messageApi.open({
-    //     type: "success",
-    //     content: "Registration successful",
-    //   });
-    // } catch (error) {
-    //   console.error(error);
-    //   if (error.response?.status === 400) {
-    //     messageApi.open({
-    //       type: "error",
-    //       content: "Invalid input",
-    //     });
-    //     return;
-    //   }
-    //   messageApi.open({
-    //     type: "error",
-    //     content: error.message,
-    //   });
-    // }
+    messageApi.loading("Signing up...");
+
+    try {
+      const data = await signUp(values);
+
+      return SignUpResult({ username: data.username });
+    } catch (error) {
+      console.error(error);
+      if (doesStatusMatch(error, 400)) {
+        messageApi.error("Invalid input");
+        return;
+      }
+      messageApi.open({
+        type: "error",
+        content: error instanceof Error ? error.message : "An error occurred",
+      });
+    }
   };
 
   return (
@@ -167,18 +162,33 @@ const SignUpForm: React.FC = () => {
                 </Form.Item>
 
                 <Form.Item
-                  name="full_name"
-                  label="Full Name"
-                  tooltip="Your full name: First Name, Last Name."
+                  name="first_name"
+                  label="First Name"
+                  tooltip="Your first name or given name."
                   rules={[
                     {
                       required: true,
-                      message: "Please input your full name!",
+                      message: "Please input your first name!",
                       whitespace: true,
                     },
                   ]}
                 >
-                  <Input placeholder="Full Name" />
+                  <Input placeholder="First Name" />
+                </Form.Item>
+
+                <Form.Item
+                  name="last_name"
+                  label="Last Name"
+                  tooltip="Your last name or family name."
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input your last name!",
+                      whitespace: true,
+                    },
+                  ]}
+                >
+                  <Input placeholder="Last Name" />
                 </Form.Item>
 
                 <Form.Item

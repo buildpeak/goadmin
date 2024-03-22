@@ -148,7 +148,11 @@ func Test_authService_Login(t *testing.T) {
 				return
 			}
 
-			if _, err := a.VerifyToken(context.Background(), got); (err == nil) != tt.want {
+			if got == nil {
+				return
+			}
+
+			if _, err := a.VerifyToken(context.Background(), got.AccessToken); (err == nil) != tt.want {
 				t.Errorf("authService.Login() = %v, want %v", got, tt.want)
 			}
 		})
@@ -204,7 +208,7 @@ func Test_authService_VerifyToken(t *testing.T) {
 				Password: "password",
 			})
 
-			got, err := a.VerifyToken(context.Background(), token)
+			got, err := a.VerifyToken(context.Background(), token.AccessToken)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
@@ -270,7 +274,7 @@ func Test_authService_Logout(t *testing.T) {
 				Password: "password",
 			})
 
-			if err := a.Logout(context.Background(), token); (err != nil) != tt.wantErr {
+			if err := a.Logout(context.Background(), token.AccessToken); (err != nil) != tt.wantErr {
 				t.Errorf(
 					"authService.Logout() error = %v, wantErr %v",
 					err,
