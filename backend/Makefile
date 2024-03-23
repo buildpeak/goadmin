@@ -13,6 +13,8 @@ help: ## show this help
 
 SHELL = /bin/bash
 
+GOFLAGS=-ldflags=-extldflags=-Wl,-ld_classic
+
 BIN_API = bin/api
 BIN_PARSE_CONFIG = bin/tool/parse-config
 

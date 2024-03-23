@@ -38,7 +38,7 @@ var _ Service = &authService{}
 type authService struct {
 	userRepo         domain.UserRepository
 	revokedTokenRepo domain.RevokedTokenRepository
-	jwtSecret        []byte
+	jwtSecret        interface{}
 	idTokenValidator GoogleIDTokenValidator
 	audience         string
 }
@@ -85,6 +85,7 @@ func (a *authService) generateToken(username string) (*domain.JWTToken, error) {
 		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			Issuer:    "goadmin-backend",
 		},
 	}
 
@@ -98,9 +99,10 @@ func (a *authService) generateToken(username string) (*domain.JWTToken, error) {
 	// Create the refresh token with longer expiry
 	refreshTokenExpirationTime := time.Now().Add(DefaultRefreshTokenDuration)
 	refreshClaims := &domain.JWTClaims{
-		Username: "username",
+		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(refreshTokenExpirationTime),
+			Issuer:    "goadmin-backend",
 		},
 	}
 

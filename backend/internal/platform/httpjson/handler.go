@@ -9,7 +9,7 @@ import (
 )
 
 type Handler struct {
-	logger *slog.Logger
+	Logger *slog.Logger
 }
 
 func (h *Handler) ParseJSON(
@@ -19,7 +19,7 @@ func (h *Handler) ParseJSON(
 ) error {
 	// Decode the request body into the dataPtr.
 	if err := json.NewDecoder(req.Body).Decode(dataPtr); err != nil {
-		httperr.JSONError(res, err, http.StatusBadRequest)
+		httperr.JSONError(res, err, http.StatusBadRequest, req.URL.Path)
 
 		return err //nolint:wrapcheck // no need to wrap
 	}
@@ -36,6 +36,6 @@ func (h *Handler) RespondJSON(res http.ResponseWriter, data any, status int) {
 	}
 
 	if err := json.NewEncoder(res).Encode(data); err != nil {
-		h.logger.Error("error encoding response", slog.Any("err", err))
+		h.Logger.Error("error encoding response", slog.Any("err", err))
 	}
 }

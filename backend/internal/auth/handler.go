@@ -13,11 +13,15 @@ import (
 type Handler struct {
 	httpjson.Handler
 	authService Service
-	logger      *slog.Logger
 }
 
 func NewHandler(authService Service, logger *slog.Logger) *Handler {
-	return &Handler{authService: authService, logger: logger}
+	return &Handler{
+		Handler: httpjson.Handler{
+			Logger: logger,
+		},
+		authService: authService,
+	}
 }
 
 // Login handler signs in a user.
@@ -25,7 +29,7 @@ func (h *Handler) Login(res http.ResponseWriter, req *http.Request) {
 	var credentials domain.Credentials
 
 	if err := h.ParseJSON(res, req, &credentials); err != nil {
-		h.logger.Error("error decoding credentials", slog.Any("err", err))
+		h.Logger.Error("error decoding credentials", slog.Any("err", err))
 
 		return
 	}
@@ -33,16 +37,16 @@ func (h *Handler) Login(res http.ResponseWriter, req *http.Request) {
 	token, err := h.authService.Login(req.Context(), credentials)
 	if err != nil {
 		if errors.Is(err, ErrInvalidCredentials) {
-			h.logger.Error("error invalid credentials", slog.Any("err", err))
+			h.Logger.Error("error invalid credentials", slog.Any("err", err))
 
-			httperr.JSONError(res, err, http.StatusUnauthorized)
+			httperr.JSONError(res, err, http.StatusUnauthorized, req.URL.Path)
 
 			return
 		}
 
-		h.logger.Error("error logging in", slog.Any("err", err))
+		h.Logger.Error("error logging in", slog.Any("err", err))
 
-		httperr.JSONError(res, err, http.StatusInternalServerError)
+		httperr.JSONError(res, err, http.StatusInternalServerError, req.URL.Path)
 
 		return
 	}
@@ -52,19 +56,27 @@ func (h *Handler) Login(res http.ResponseWriter, req *http.Request) {
 
 // register handler signs up a user
 func (h *Handler) Register(res http.ResponseWriter, req *http.Request) {
-	var user domain.User
+	var regReq RegisterRequest
 
-	if err := h.ParseJSON(res, req, &user); err != nil {
-		h.logger.Error("error decoding user", slog.Any("err", err))
+	if err := h.ParseJSON(res, req, &regReq); err != nil {
+		h.Logger.Error("error decoding register request", slog.Any("err", err))
 
 		return
 	}
 
-	newUser, err := h.authService.Register(req.Context(), &user)
-	if err != nil {
-		h.logger.Error("error registering user", slog.Any("err", err))
+	user := &domain.User{
+		Username:  regReq.Username,
+		Password:  regReq.Password,
+		Email:     regReq.Email,
+		FirstName: regReq.FirstName,
+		LastName:  regReq.LastName,
+	}
 
-		httperr.JSONError(res, err, http.StatusInternalServerError)
+	newUser, err := h.authService.Register(req.Context(), user)
+	if err != nil {
+		h.Logger.Error("error registering user", slog.Any("err", err))
+
+		httperr.JSONError(res, err, http.StatusInternalServerError, req.URL.Path)
 
 		return
 	}
@@ -79,7 +91,7 @@ func (h *Handler) SignInWithGoogle(res http.ResponseWriter, req *http.Request) {
 	var idTokenReq GoogleIDTokenVerifyRequest
 
 	if err := h.ParseJSON(res, req, &idTokenReq); err != nil {
-		h.logger.Error("error decoding id token request", slog.Any("err", err))
+		h.Logger.Error("error decoding id token request", slog.Any("err", err))
 
 		return
 	}
@@ -92,7 +104,7 @@ func (h *Handler) SignInWithGoogle(res http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		// invalid id_token
 		if errors.Is(err, ErrInvalidIDToken) {
-			h.logger.Error("error validating google id token", slog.Any("err", err))
+			h.Logger.Error("error validating google id token", slog.Any("err", err))
 
 			httperr.JSONError(res, err, http.StatusUnauthorized)
 
@@ -102,7 +114,7 @@ func (h *Handler) SignInWithGoogle(res http.ResponseWriter, req *http.Request) {
 		// user not found
 		var userNotFoundErr *domain.ResourceNotFoundError
 		if errors.As(err, &userNotFoundErr) {
-			h.logger.Error("error finding user", slog.Any("err", userNotFoundErr))
+			h.Logger.Error("error finding user", slog.Any("err", userNotFoundErr))
 
 			httperr.JSONError(res, userNotFoundErr, http.StatusNotFound)
 
@@ -110,7 +122,7 @@ func (h *Handler) SignInWithGoogle(res http.ResponseWriter, req *http.Request) {
 		}
 
 		// other errors
-		h.logger.Error("error validating google id token", slog.Any("err", err))
+		h.Logger.Error("error validating google id token", slog.Any("err", err))
 
 		httperr.JSONError(res, err, http.StatusInternalServerError)
 

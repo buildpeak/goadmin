@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"reflect"
 	"testing"
 
 	"google.golang.org/api/idtoken"
@@ -30,7 +29,7 @@ func Test_authService_VerifyGoogleIDToken(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *domain.JWTToken
+		want    bool
 		wantErr bool
 	}{
 		{
@@ -45,10 +44,7 @@ func Test_authService_VerifyGoogleIDToken(t *testing.T) {
 				idToken:  "idToken",
 				audience: "audience",
 			},
-			want: &domain.JWTToken{
-				AccessToken:  "access_token",
-				RefreshToken: "refresh_token",
-			},
+			want: true,
 		},
 		{
 			name: "Error",
@@ -63,6 +59,19 @@ func Test_authService_VerifyGoogleIDToken(t *testing.T) {
 			args: args{
 				idToken:  "idToken",
 				audience: "audience",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Get user error",
+			fields: fields{
+				userRepo:         &UserRepositoryMock{hasError: true},
+				revokedTokenRepo: &RevokedTokenRepositoryMock{},
+				jwtSecret:        []byte("jwtSecret"),
+				idTokenValidator: &GoogleIDTokenValidatorMock{},
+			},
+			args: args{
+				idToken: "idToken",
 			},
 			wantErr: true,
 		},
@@ -95,12 +104,12 @@ func Test_authService_VerifyGoogleIDToken(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf(
-					"authService.VerifyGoogleIDToken() = %v, want %v",
-					got,
-					tt.want,
-				)
+			if got == nil && tt.wantErr {
+				return
+			}
+
+			if _, err := a.VerifyToken(context.Background(), got.AccessToken); (err == nil) != tt.want {
+				t.Errorf("authService.VerifyToken() error = %v, wantErr %v", err, tt.want)
 			}
 		})
 	}

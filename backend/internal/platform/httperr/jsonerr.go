@@ -11,48 +11,6 @@ import (
 	"goadmin-backend/internal/domain"
 )
 
-var (
-	// ErrUnauthorized is returned when a user is not authorized to perform an action.
-	ErrUnauthorized = &RESTAPIError{
-		Type:   "/errors/unauthorized",
-		Title:  "Unauthorized",
-		Status: http.StatusUnauthorized,
-		Detail: "You are not authorized to perform this action",
-	}
-
-	// ErrForbidden is returned when a user is forbidden from performing an action.
-	ErrForbidden = &RESTAPIError{
-		Type:   "/errors/forbidden",
-		Title:  "Forbidden",
-		Status: http.StatusForbidden,
-		Detail: "You are forbidden from performing this action",
-	}
-
-	// ErrNotFound is returned when a resource is not found.
-	ErrNotFound = &RESTAPIError{
-		Type:   "/errors/not-found",
-		Title:  "Not Found",
-		Status: http.StatusNotFound,
-		Detail: "The requested resource was not found",
-	}
-
-	// ErrBadRequest is returned when a bad request is made.
-	ErrBadRequest = &RESTAPIError{
-		Type:   "/errors/bad-request",
-		Title:  "Bad Request",
-		Status: http.StatusBadRequest,
-		Detail: "The request was invalid or cannot be served",
-	}
-
-	// ErrInternalServerError is returned when an internal server error occurs.
-	ErrInternalServerError = &RESTAPIError{
-		Type:   "/errors/internal-server-error",
-		Title:  "Internal Server Error",
-		Status: http.StatusInternalServerError,
-		Detail: "An internal server error occurred",
-	}
-)
-
 type jsonError interface {
 	error
 	Encode(res http.ResponseWriter) error
@@ -120,6 +78,60 @@ func WithDomainError(err domain.Error, status int) *RESTAPIError {
 	}
 }
 
+func WithStatus(status int) *RESTAPIError {
+	switch status {
+	case http.StatusBadRequest: // 400
+		return &RESTAPIError{
+			Type:   "/errors/bad-request",
+			Title:  "Bad Request",
+			Status: http.StatusBadRequest,
+			Detail: "The request was invalid or cannot be served",
+		}
+	case http.StatusUnauthorized: // 401
+		return &RESTAPIError{
+			Type:   "/errors/unauthorized",
+			Title:  "Unauthorized",
+			Status: http.StatusUnauthorized,
+			Detail: "You are not authorized to perform this action",
+		}
+	case http.StatusForbidden: // 403
+		return &RESTAPIError{
+			Type:   "/errors/forbidden",
+			Title:  "Forbidden",
+			Status: http.StatusForbidden,
+			Detail: "You are forbidden from performing this action",
+		}
+	case http.StatusNotFound: // 404
+		return &RESTAPIError{
+			Type:   "/errors/not-found",
+			Title:  "Not Found",
+			Status: http.StatusNotFound,
+			Detail: "The requested resource was not found",
+		}
+	case http.StatusConflict: // 409
+		return &RESTAPIError{
+			Type:   "/errors/conflict",
+			Title:  "Conflict",
+			Status: http.StatusConflict,
+			Detail: "A conflict occurred while processing the request",
+		}
+	case http.StatusInternalServerError: // 500
+		return &RESTAPIError{
+			Type:   "/errors/internal-server-error",
+			Title:  "Internal Server Error",
+			Status: http.StatusInternalServerError,
+			Detail: "An internal server error occurred",
+		}
+	default: // Unknown
+		return &RESTAPIError{
+			Type:   "/errors/unknown-error",
+			Title:  "Unknown Error",
+			Status: status,
+			Detail: "An unknown error occurred",
+		}
+	}
+}
+
 type ValidationErrorItem struct {
 	Detail  string `json:"detail"`
 	Pointer string `json:"pointer"`
@@ -165,21 +177,6 @@ func NewValidationError(
 	}
 }
 
-func lookupError(code int) *RESTAPIError {
-	errMap := map[int]*RESTAPIError{
-		http.StatusUnauthorized: ErrUnauthorized,
-		http.StatusForbidden:    ErrForbidden,
-		http.StatusNotFound:     ErrNotFound,
-		http.StatusBadRequest:   ErrBadRequest,
-	}
-
-	if err, ok := errMap[code]; ok {
-		return err
-	}
-
-	return ErrInternalServerError
-}
-
 func JSONError(res http.ResponseWriter, err error, code int, endpoints ...string) {
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(code)
@@ -202,11 +199,11 @@ func JSONError(res http.ResponseWriter, err error, code int, endpoints ...string
 	case errors.As(err, &domainError):
 		jsnErr = WithDomainError(domainError, code)
 	case code != http.StatusInternalServerError:
-		jsnErr = lookupError(code)
+		jsnErr = WithStatus(code)
 	default:
 		slog.Error("error not recognized", slog.Any("err", err))
 
-		jsnErr = ErrInternalServerError
+		jsnErr = WithStatus(http.StatusInternalServerError)
 	}
 
 	// update instance

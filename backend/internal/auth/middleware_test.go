@@ -72,7 +72,7 @@ func TestHandler_Authenticator(t *testing.T) {
 			name: "Test Authenticator() with invalid token in header",
 			fields: fields{
 				authService: &ServiceMock{
-					hasError: true,
+					err: ErrInvalidToken,
 				},
 			},
 			req:        newRequestWithToken("invalid_token", "header"),
@@ -295,20 +295,15 @@ func TestTokenFromCookie(t *testing.T) {
 var _ Service = &ServiceMock{}
 
 type ServiceMock struct {
-	hasError bool
-	err      error
+	err error
 }
 
 func (s *ServiceMock) Login(
 	_ context.Context,
 	_ domain.Credentials,
 ) (*domain.JWTToken, error) {
-	if s.hasError {
-		if s.err != nil {
-			return nil, s.err
-		}
-
-		return nil, ErrInvalidCredentials
+	if s.err != nil {
+		return nil, s.err
 	}
 
 	return &domain.JWTToken{
@@ -320,8 +315,8 @@ func (s *ServiceMock) VerifyToken(
 	_ context.Context,
 	_ string,
 ) (*domain.User, error) {
-	if s.hasError {
-		return nil, ErrInvalidToken
+	if s.err != nil {
+		return nil, s.err
 	}
 
 	return &domain.User{
@@ -333,8 +328,8 @@ func (s *ServiceMock) Register(
 	_ context.Context,
 	_ *domain.User,
 ) (*domain.User, error) {
-	if s.hasError {
-		return nil, ErrInvalidCredentials
+	if s.err != nil {
+		return nil, s.err
 	}
 
 	return &domain.User{
@@ -347,8 +342,8 @@ func (s *ServiceMock) ValidateGoogleIDToken(
 	_ string,
 	_ string,
 ) (*domain.JWTToken, error) {
-	if s.hasError {
-		return nil, ErrInvalidToken
+	if s.err != nil {
+		return nil, s.err
 	}
 
 	return &domain.JWTToken{

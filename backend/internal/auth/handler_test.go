@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"goadmin-backend/internal/domain"
+	"goadmin-backend/internal/platform/httpjson"
 	"goadmin-backend/internal/platform/logging"
 )
 
@@ -35,7 +36,9 @@ func TestNewHandler(t *testing.T) {
 			},
 			want: &Handler{
 				authService: &ServiceMock{},
-				logger:      logging.NewLogger(),
+				Handler: httpjson.Handler{
+					Logger: logging.NewLogger(),
+				},
 			},
 		},
 	}
@@ -117,7 +120,7 @@ func TestHandler_Login(t *testing.T) {
 		{
 			name: "Fail",
 			fields: fields{
-				authService: &ServiceMock{hasError: true},
+				authService: &ServiceMock{err: ErrInvalidCredentials},
 				logger:      logging.NewLogger(),
 			},
 			args: args{
@@ -126,13 +129,13 @@ func TestHandler_Login(t *testing.T) {
 			},
 			want: want{
 				code: http.StatusUnauthorized,
-				body: `{"type":"/errors/unauthorized","title":"Unauthorized","status":401,"detail":"You are not authorized to perform this action","instance":""}` + "\n",
+				body: `{"type":"/errors/unauthorized","title":"Unauthorized","status":401,"detail":"You are not authorized to perform this action","instance":"/login"}` + "\n",
 			},
 		},
 		{
 			name: "Fail Internal Server Error",
 			fields: fields{
-				authService: &ServiceMock{hasError: true, err: errors.New("db error")},
+				authService: &ServiceMock{err: errors.New("db error")},
 				logger:      logging.NewLogger(),
 			},
 			args: args{
@@ -141,7 +144,7 @@ func TestHandler_Login(t *testing.T) {
 			},
 			want: want{
 				code: http.StatusInternalServerError,
-				body: `{"type":"/errors/internal_server_error","title":"Internal Server Error","status":500,"detail":"An internal server error occurred","instance":""}` + "\n",
+				body: `{"type":"/errors/internal-server-error","title":"Internal Server Error","status":500,"detail":"An internal server error occurred","instance":"/login"}` + "\n",
 			},
 		},
 		{
@@ -156,7 +159,7 @@ func TestHandler_Login(t *testing.T) {
 			},
 			want: want{
 				code: http.StatusBadRequest,
-				body: `{"type":"/errors/bad_request","title":"Bad Request","status":400,"detail":"The request was invalid or cannot be served","instance":""}` + "\n",
+				body: `{"type":"/errors/bad-request","title":"Bad Request","status":400,"detail":"The request was invalid or cannot be served","instance":"/login"}` + "\n",
 			},
 		},
 	}
@@ -168,7 +171,9 @@ func TestHandler_Login(t *testing.T) {
 
 			h := &Handler{
 				authService: tt.fields.authService,
-				logger:      tt.fields.logger,
+				Handler: httpjson.Handler{
+					Logger: tt.fields.logger,
+				},
 			}
 
 			h.Login(tt.args.res, tt.args.req)
@@ -236,6 +241,36 @@ func TestHandler_Register(t *testing.T) {
 				body: `{"id":"1","username":"","first_name":"","last_name":"","email":"","active":false,"deleted_at":null}` + "\n",
 			},
 		},
+		{
+			name: "Fail Internal Server Error",
+			fields: fields{
+				authService: &ServiceMock{err: errors.New("db error")},
+				logger:      logging.NewLogger(),
+			},
+			args: args{
+				res: httptest.NewRecorder(),
+				req: newRequest(http.MethodPost, "/register", domain.User{}),
+			},
+			want: want{
+				code: http.StatusInternalServerError,
+				body: `{"type":"/errors/internal-server-error","title":"Internal Server Error","status":500,"detail":"An internal server error occurred","instance":"/register"}` + "\n",
+			},
+		},
+		{
+			name: "Fail Decode",
+			fields: fields{
+				authService: &ServiceMock{},
+				logger:      logging.NewLogger(),
+			},
+			args: args{
+				res: httptest.NewRecorder(),
+				req: httptest.NewRequest(http.MethodPost, "/register", bytes.NewReader([]byte("invalid"))),
+			},
+			want: want{
+				code: http.StatusBadRequest,
+				body: `{"type":"/errors/bad-request","title":"Bad Request","status":400,"detail":"The request was invalid or cannot be served","instance":"/register"}` + "\n",
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -245,7 +280,9 @@ func TestHandler_Register(t *testing.T) {
 
 			h := &Handler{
 				authService: tt.fields.authService,
-				logger:      tt.fields.logger,
+				Handler: httpjson.Handler{
+					Logger: tt.fields.logger,
+				},
 			}
 
 			h.Register(tt.args.res, tt.args.req)
@@ -276,7 +313,7 @@ func TestHandler_SignInWithGoogle(t *testing.T) {
 
 	type fields struct {
 		authService Service
-		logger      *slog.Logger
+		httpjson.Handler
 	}
 
 	type args struct {
@@ -293,11 +330,71 @@ func TestHandler_SignInWithGoogle(t *testing.T) {
 			name: "Success",
 			fields: fields{
 				authService: &ServiceMock{},
-				logger:      logging.NewLogger(),
+				Handler: httpjson.Handler{
+					Logger: logging.NewLogger(),
+				},
 			},
 			args: args{
 				res: httptest.NewRecorder(),
-				req: newRequest(http.MethodPost, "/google", GoogleIDTokenVerifyRequest{
+				req: newRequest(http.MethodPost, "/signin-with-google", GoogleIDTokenVerifyRequest{
+					IDToken: "good_token",
+				}),
+			},
+		},
+		{
+			name: "Fail Invalid Id Token",
+			fields: fields{
+				authService: &ServiceMock{err: ErrInvalidIDToken},
+				Handler: httpjson.Handler{
+					Logger: logging.NewLogger(),
+				},
+			},
+			args: args{
+				res: httptest.NewRecorder(),
+				req: newRequest(http.MethodPost, "/signin-with-google", GoogleIDTokenVerifyRequest{
+					IDToken: "bad_token",
+				}),
+			},
+		},
+		{
+			name: "Fail Decode",
+			fields: fields{
+				authService: &ServiceMock{},
+				Handler: httpjson.Handler{
+					Logger: logging.NewLogger(),
+				},
+			},
+			args: args{
+				res: httptest.NewRecorder(),
+				req: httptest.NewRequest(http.MethodPost, "/signin-with-google", bytes.NewReader([]byte("invalid"))),
+			},
+		},
+		{
+			name: "Fail Internal Server Error",
+			fields: fields{
+				authService: &ServiceMock{err: errors.New("db error")},
+				Handler: httpjson.Handler{
+					Logger: logging.NewLogger(),
+				},
+			},
+			args: args{
+				res: httptest.NewRecorder(),
+				req: newRequest(http.MethodPost, "/signin-with-google", GoogleIDTokenVerifyRequest{
+					IDToken: "good_token",
+				}),
+			},
+		},
+		{
+			name: "Fail User Not Found",
+			fields: fields{
+				authService: &ServiceMock{err: domain.NewResourceNotFoundError("user", "id=1")},
+				Handler: httpjson.Handler{
+					Logger: logging.NewLogger(),
+				},
+			},
+			args: args{
+				res: httptest.NewRecorder(),
+				req: newRequest(http.MethodPost, "/signin-with-google", GoogleIDTokenVerifyRequest{
 					IDToken: "good_token",
 				}),
 			},
@@ -311,7 +408,7 @@ func TestHandler_SignInWithGoogle(t *testing.T) {
 
 			h := &Handler{
 				authService: tt.fields.authService,
-				logger:      tt.fields.logger,
+				Handler:     tt.fields.Handler,
 			}
 
 			h.SignInWithGoogle(tt.args.res, tt.args.req)
