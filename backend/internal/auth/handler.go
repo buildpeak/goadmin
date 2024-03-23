@@ -1,16 +1,17 @@
 package auth
 
 import (
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
 
 	"goadmin-backend/internal/domain"
 	"goadmin-backend/internal/platform/httperr"
+	"goadmin-backend/internal/platform/httpjson"
 )
 
 type Handler struct {
+	httpjson.Handler
 	authService Service
 	logger      *slog.Logger
 }
@@ -23,16 +24,22 @@ func NewHandler(authService Service, logger *slog.Logger) *Handler {
 func (h *Handler) Login(res http.ResponseWriter, req *http.Request) {
 	var credentials domain.Credentials
 
-	if err := json.NewDecoder(req.Body).Decode(&credentials); err != nil {
+	if err := h.ParseJSON(res, req, &credentials); err != nil {
 		h.logger.Error("error decoding credentials", slog.Any("err", err))
-
-		http.Error(res, "invalid request", http.StatusBadRequest)
 
 		return
 	}
 
 	token, err := h.authService.Login(req.Context(), credentials)
 	if err != nil {
+		if errors.Is(err, ErrInvalidCredentials) {
+			h.logger.Error("error invalid credentials", slog.Any("err", err))
+
+			httperr.JSONError(res, err, http.StatusUnauthorized)
+
+			return
+		}
+
 		h.logger.Error("error logging in", slog.Any("err", err))
 
 		httperr.JSONError(res, err, http.StatusInternalServerError)
@@ -40,23 +47,15 @@ func (h *Handler) Login(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := json.NewEncoder(res).Encode(token); err != nil {
-		h.logger.Error("error writing token", slog.Any("err", err))
-
-		httperr.JSONError(res, err, http.StatusInternalServerError)
-
-		return
-	}
+	h.RespondJSON(res, token, http.StatusOK)
 }
 
 // register handler signs up a user
 func (h *Handler) Register(res http.ResponseWriter, req *http.Request) {
 	var user domain.User
 
-	if err := json.NewDecoder(req.Body).Decode(&user); err != nil {
+	if err := h.ParseJSON(res, req, &user); err != nil {
 		h.logger.Error("error decoding user", slog.Any("err", err))
-
-		httperr.JSONError(res, err, http.StatusInternalServerError)
 
 		return
 	}
@@ -72,23 +71,15 @@ func (h *Handler) Register(res http.ResponseWriter, req *http.Request) {
 
 	res.WriteHeader(http.StatusCreated)
 
-	if err := json.NewEncoder(res).Encode(ToUserResponse(newUser)); err != nil {
-		h.logger.Error("error encoding user", slog.Any("err", err))
-
-		httperr.JSONError(res, err, http.StatusInternalServerError)
-
-		return
-	}
+	h.RespondJSON(res, ToUserResponse(newUser), http.StatusCreated)
 }
 
 // SignInWithGoogle handler signs in a user using Google.
 func (h *Handler) SignInWithGoogle(res http.ResponseWriter, req *http.Request) {
 	var idTokenReq GoogleIDTokenVerifyRequest
 
-	if err := json.NewDecoder(req.Body).Decode(&idTokenReq); err != nil {
+	if err := h.ParseJSON(res, req, &idTokenReq); err != nil {
 		h.logger.Error("error decoding id token request", slog.Any("err", err))
-
-		httperr.JSONError(res, err, http.StatusInternalServerError)
 
 		return
 	}
@@ -126,11 +117,5 @@ func (h *Handler) SignInWithGoogle(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := json.NewEncoder(res).Encode(token); err != nil {
-		h.logger.Error("error encoding user", slog.Any("err", err))
-
-		httperr.JSONError(res, err, http.StatusInternalServerError)
-
-		return
-	}
+	h.RespondJSON(res, token, http.StatusOK)
 }

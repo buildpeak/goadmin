@@ -31,8 +31,6 @@ func (a *authService) ValidateGoogleIDToken(
 		return nil, errors.Join(ErrInvalidIDToken, err)
 	}
 
-	fmt.Printf("tokenInfo: %+v", tokenInfo)
-
 	user, err := a.userRepo.FindByUsername(ctx, tokenInfo.Claims["email"].(string))
 	if err != nil {
 		return nil, fmt.Errorf("error find user by username: %w", err)

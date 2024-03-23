@@ -3,6 +3,7 @@ package auth
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -54,11 +55,13 @@ func TestNewHandler(t *testing.T) {
 	}
 }
 
+//nolint:unparam // unit test
 func newRequest(method, urlPath string, body any) *http.Request {
 	if body == nil {
 		return httptest.NewRequest(method, urlPath, nil)
 	}
 
+	//nolint:errchkjson // unit test ignore error
 	b, _ := json.Marshal(body)
 
 	req := httptest.NewRequest(method, urlPath, bytes.NewReader(b))
@@ -109,6 +112,51 @@ func TestHandler_Login(t *testing.T) {
 			want: want{
 				code: http.StatusOK,
 				body: `{"access_token":"good_token","refresh_token":""}` + "\n",
+			},
+		},
+		{
+			name: "Fail",
+			fields: fields{
+				authService: &ServiceMock{hasError: true},
+				logger:      logging.NewLogger(),
+			},
+			args: args{
+				res: httptest.NewRecorder(),
+				req: newRequest(http.MethodPost, "/login", domain.Credentials{}),
+			},
+			want: want{
+				code: http.StatusUnauthorized,
+				body: `{"type":"/errors/unauthorized","title":"Unauthorized","status":401,"detail":"You are not authorized to perform this action","instance":""}` + "\n",
+			},
+		},
+		{
+			name: "Fail Internal Server Error",
+			fields: fields{
+				authService: &ServiceMock{hasError: true, err: errors.New("db error")},
+				logger:      logging.NewLogger(),
+			},
+			args: args{
+				res: httptest.NewRecorder(),
+				req: newRequest(http.MethodPost, "/login", domain.Credentials{}),
+			},
+			want: want{
+				code: http.StatusInternalServerError,
+				body: `{"type":"/errors/internal_server_error","title":"Internal Server Error","status":500,"detail":"An internal server error occurred","instance":""}` + "\n",
+			},
+		},
+		{
+			name: "Fail Decode",
+			fields: fields{
+				authService: &ServiceMock{},
+				logger:      logging.NewLogger(),
+			},
+			args: args{
+				res: httptest.NewRecorder(),
+				req: httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader([]byte("invalid"))),
+			},
+			want: want{
+				code: http.StatusBadRequest,
+				body: `{"type":"/errors/bad_request","title":"Bad Request","status":400,"detail":"The request was invalid or cannot be served","instance":""}` + "\n",
 			},
 		},
 	}

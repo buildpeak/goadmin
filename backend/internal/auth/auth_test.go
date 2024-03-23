@@ -123,6 +123,22 @@ func Test_authService_Login(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "Invalid Credentials",
+			fields: fields{
+				userRepo:         &UserRepositoryMock{},
+				revokedTokenRepo: &RevokedTokenRepositoryMock{},
+				jwtSecret:        []byte("secret"),
+				idTokenValidator: &GoogleIDTokenValidatorMock{},
+			},
+			args: args{
+				credentials: domain.Credentials{
+					Username: "username",
+					Password: "invalid_password",
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -148,7 +164,7 @@ func Test_authService_Login(t *testing.T) {
 				return
 			}
 
-			if got == nil {
+			if got == nil && tt.wantErr {
 				return
 			}
 

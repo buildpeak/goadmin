@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import {
   Button,
@@ -9,9 +9,12 @@ import {
   Form,
   Row,
   Input,
+  message,
   Flex,
   Typography,
 } from "antd";
+
+import { useNavigate } from "react-router-dom";
 
 import Logo from "../../components/Logo";
 import "./Login.css";
@@ -30,18 +33,39 @@ type GoogleSignInResponse = {
 };
 
 const LoginForm: React.FC = () => {
+  const [messageApi, contextHolder] = message.useMessage();
+  const navigate = useNavigate();
+
   const onFinish = (values: any) => {
     console.log("Received values of form: ", values);
   };
 
-  const googleSignInCallback = async (response: GoogleSignInResponse) => {
-    const idToken = response.credential;
+  const googleSignInCallback = useCallback(
+    async (response: GoogleSignInResponse) => {
+      const idToken = response.credential;
 
-    localStorage.setItem("googleIdToken", idToken);
+      localStorage.setItem("googleIdToken", idToken);
 
-    const backendAccessToken = await verifyGoogleIdToken(idToken);
-    console.log(backendAccessToken);
-  };
+      try {
+        const backendJwtToken = await verifyGoogleIdToken(idToken);
+
+        localStorage.setItem("accessToken", backendJwtToken.access_token);
+        localStorage.setItem("refreshToken", backendJwtToken.refresh_token);
+
+        // redirect to dashboard
+        navigate("/dashboard", { replace: true });
+      } catch (error) {
+        console.error(error);
+
+        // show error message
+        messageApi.open({
+          type: "error",
+          content: error instanceof Error ? error.message : "An error occurred",
+        });
+      }
+    },
+    [messageApi, navigate]
+  );
 
   useEffect(() => {
     const params = {
@@ -73,7 +97,7 @@ const LoginForm: React.FC = () => {
     googleAccountInit();
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [googleSignInCallback]);
 
   return (
     <Row justify="center" className="login-page">
@@ -92,6 +116,7 @@ const LoginForm: React.FC = () => {
               initialValues={{ remember: true }}
               onFinish={onFinish}
             >
+              {contextHolder}
               <Form.Item
                 name="username"
                 rules={[

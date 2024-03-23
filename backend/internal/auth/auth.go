@@ -68,10 +68,6 @@ func (a *authService) Login(
 		return nil, fmt.Errorf("find user error %w", err)
 	}
 
-	if user == nil {
-		return nil, ErrInvalidCredentials
-	}
-
 	err = bcrypt.CompareHashAndPassword(
 		[]byte(user.Password),
 		[]byte(credentials.Password),

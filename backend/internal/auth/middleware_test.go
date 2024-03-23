@@ -79,6 +79,15 @@ func TestHandler_Authenticator(t *testing.T) {
 			wantStatus: http.StatusUnauthorized,
 			want:       "Unauthorized\n",
 		},
+		{
+			name: "Test Authenticator() with no token",
+			fields: fields{
+				authService: &ServiceMock{},
+			},
+			req:        httptest.NewRequest(http.MethodGet, "/", nil),
+			wantStatus: http.StatusUnauthorized,
+			want:       "Unauthorized\n",
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -287,6 +296,7 @@ var _ Service = &ServiceMock{}
 
 type ServiceMock struct {
 	hasError bool
+	err      error
 }
 
 func (s *ServiceMock) Login(
@@ -294,6 +304,10 @@ func (s *ServiceMock) Login(
 	_ domain.Credentials,
 ) (*domain.JWTToken, error) {
 	if s.hasError {
+		if s.err != nil {
+			return nil, s.err
+		}
+
 		return nil, ErrInvalidCredentials
 	}
 
