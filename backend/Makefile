@@ -13,8 +13,6 @@ help: ## show this help
 
 SHELL = /bin/bash
 
-GOFLAGS=-ldflags=-extldflags=-Wl,-ld_classic
-
 BIN_API = bin/api
 BIN_PARSE_CONFIG = bin/tool/parse-config
 
@@ -24,7 +22,13 @@ $(BIN_API):
 GO_MOD_NAME := $(shell go list -m)
 
 test: ## run tests
-	@go test -race -cover ./... | sed "/PASS/s//$$(printf '\033[32mPASS\033[0m')/" | sed "/FAIL/s//$$(printf '\033[31mFAIL\033[0m')/"
+	@go test -race -cover ./... | \
+		sed "s/PASS/$$(printf '\033[32mPASS\033[0m')/" | \
+		sed "s/FAIL/$$(printf '\033[31mFAIL\033[0m')/" | \
+		sed "s/ok/$$(printf '\033[32mok\033[0m')/" | \
+		sed -E "s/coverage: ([89]...%|100%)/$$(printf 'coverage: \033[32m')\1$$(printf '\033[0m')/" | \
+		sed -E "s/coverage: ([6-7]...%)/$$(printf 'coverage: \033[33m')\1$$(printf '\033[0m')/" | \
+		sed -E "s/coverage: ([0-5]...%|[0-9]..%)/$$(printf 'coverage: \033[31m')\1$$(printf '\033[0m')/"
 
 bench:
 	@go test -bench=. -benchmem ./...

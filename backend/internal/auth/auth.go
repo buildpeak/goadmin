@@ -31,6 +31,7 @@ type Service interface {
 		ctx context.Context,
 		idToken, audience string,
 	) (*domain.JWTToken, error)
+	Logout(ctx context.Context, tokenString string) error
 }
 
 var _ Service = &authService{}

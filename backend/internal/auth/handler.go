@@ -131,3 +131,18 @@ func (h *Handler) SignInWithGoogle(res http.ResponseWriter, req *http.Request) {
 
 	h.RespondJSON(res, token, http.StatusOK)
 }
+
+// Logout handler logs out a user.
+func (h *Handler) Logout(res http.ResponseWriter, req *http.Request) {
+	tokenString := FindToken(req)
+
+	if err := h.authService.Logout(req.Context(), tokenString); err != nil {
+		h.Logger.Error("error logging out", slog.Any("err", err))
+
+		httperr.JSONError(res, err, http.StatusInternalServerError)
+
+		return
+	}
+
+	res.WriteHeader(http.StatusOK)
+}

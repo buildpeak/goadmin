@@ -350,3 +350,14 @@ func (s *ServiceMock) ValidateGoogleIDToken(
 		AccessToken: "good_token",
 	}, nil
 }
+
+func (s *ServiceMock) Logout(
+	_ context.Context,
+	_ string,
+) error {
+	if s.err != nil {
+		return s.err
+	}
+
+	return nil
+}

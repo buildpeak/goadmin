@@ -6,6 +6,11 @@ info:
   contact:
     name: buildpeak
     email: buildpeak@gmail.com
+tags:
+  - name: auth
+    description: Authentication
+  - name: general
+    description: General endpoints
 paths:
   /health:
     get:
@@ -15,6 +20,8 @@ paths:
           description: Service is healthy
       description: Check if the service is healthy
       operationId: health-check
+      tags:
+        - general
   /auth/login:
     post:
       summary: Authenticate user
@@ -44,16 +51,20 @@ paths:
                     type: string
       description: Sign a user in
       operationId: auth-login
+      tags:
+        - auth
   /auth/logout:
     post:
       summary: Logout user
       security:
-        - jwtAuth: []
+        - bearerAuth: []
       responses:
         '204':
           description: User logged out successfully
       operationId: auth-logout
       description: Sign a new out
+      tags:
+        - auth
   /auth/signup:
     post:
       summary: Register new user
@@ -86,6 +97,8 @@ paths:
           description: User registered successfully
       operationId: auth-register
       description: Sign a user up
+      tags:
+        - auth
   /auth/signin-with-google:
     post:
       summary: Sign in with Google
@@ -112,13 +125,13 @@ paths:
                     type: string
       operationId: auth-signin-with-google
       description: Sign a user in with Google
+      tags:
+        - auth
 servers:
   - url: 'http://localhost:3600'
     description: Dev
 components:
   securitySchemes:
-    jwtAuth:
-      type: apiKey
-      in: header
-      name: Authorization
-      description: JWT token in the format "Bearer <token>"
+    bearerAuth:
+      type: http
+      scheme: bearer
