@@ -15,6 +15,7 @@ type User struct {
 	FirstName string     `json:"first_name"`
 	LastName  string     `json:"last_name"`
 	Active    bool       `json:"active"`
+	Picture   string     `json:"picture"`
 	Deleted   bool       `json:"deleted"`
 	DeletedAt *time.Time `json:"deleted_at"`
 	CreatedAt time.Time  `json:"created_at"`

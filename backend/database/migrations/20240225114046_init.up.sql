@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS "user" (
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
   active BOOLEAN DEFAULT TRUE,
+  picture TEXT,
   deleted BOOLEAN DEFAULT FALSE,
   deleted_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,

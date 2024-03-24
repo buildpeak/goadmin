@@ -3,7 +3,25 @@ import { JwtToken, SignUpRequest, User } from "./types";
 
 const backendUrl = process.env.REACT_APP_BACKEND_URL;
 
-export function doesStatusMatch(error: unknown, status: number) {
+export interface ApiError {
+  type: string;
+  title: string;
+  detail: string;
+  status: number;
+  instance: string;
+  errors?: {
+    pointer: string;
+    detail: string;
+  }[];
+}
+
+export class ApiError extends Error {
+  constructor(apiErr: ApiError) {
+    super(apiErr.detail);
+  }
+}
+
+export function statusMatch(error: unknown, status: number) {
   if (isAxiosError(error)) {
     return error.response?.status === status;
   }
@@ -12,12 +30,34 @@ export function doesStatusMatch(error: unknown, status: number) {
 
 function handleAxiosError(error: unknown) {
   if (isAxiosError(error)) {
-    if (doesStatusMatch(error, 401)) {
-      window.location.href = "/login";
+    const status = error.response?.status;
+
+    switch (status) {
+      case 401:
+        window.location.href = "/login";
+        break;
+      case 400:
+        throw new Error("Invalid input");
+      default:
+        throw new ApiError(error.response?.data);
     }
-    if (doesStatusMatch(error, 400)) {
-      throw new Error("Invalid input");
-    }
+  }
+}
+
+export async function login(
+  username: string,
+  password: string
+): Promise<JwtToken> {
+  try {
+    const response = await axios.post(`${backendUrl}/auth/login`, {
+      username,
+      password,
+    });
+
+    return response.data as JwtToken;
+  } catch (error) {
+    handleAxiosError(error);
+    throw error;
   }
 }
 
@@ -30,7 +70,7 @@ export async function verifyGoogleIdToken(idToken: string): Promise<JwtToken> {
     return response.data as JwtToken;
   } catch (error) {
     // if error is 404, redirect to signup page
-    if (isAxiosError(error) && error.response?.status === 404) {
+    if (statusMatch(error, 404)) {
       window.location.href = "/signup";
     }
 

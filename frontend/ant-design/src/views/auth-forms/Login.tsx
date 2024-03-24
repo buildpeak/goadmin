@@ -18,7 +18,7 @@ import { useNavigate } from "react-router-dom";
 
 import Logo from "../../components/Logo";
 import "./Login.css";
-import { verifyGoogleIdToken } from "../../services/backend-api";
+import { login, verifyGoogleIdToken } from "../../services/backend-api";
 
 const { Title } = Typography;
 
@@ -36,8 +36,24 @@ const LoginForm: React.FC = () => {
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
 
-  const onFinish = (values: any) => {
-    console.log("Received values of form: ", values);
+  const onFinish = async (values: any) => {
+    try {
+      const token = await login(values.username, values.password);
+
+      localStorage.setItem("accessToken", token.access_token);
+      localStorage.setItem("refreshToken", token.refresh_token);
+
+      // redirect to dashboard
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      console.error(error);
+
+      // show error message
+      messageApi.open({
+        type: "error",
+        content: error instanceof Error ? error.message : "An error occurred",
+      });
+    }
   };
 
   const googleSignInCallback = useCallback(

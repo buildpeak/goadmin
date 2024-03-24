@@ -16,7 +16,7 @@ import Logo from "../../components/Logo";
 import "./SignUp.css";
 import { jwtDecode } from "jwt-decode";
 import { GoogleJwtPayload } from "./data-types";
-import { doesStatusMatch, signUp } from "../../services/backend-api";
+import { statusMatch, signUp } from "../../services/backend-api";
 import SignUpResult from "./SignUpResult";
 
 const { Title } = Typography;
@@ -58,7 +58,7 @@ const SignUpForm: React.FC = () => {
       return SignUpResult({ username: data.username });
     } catch (error) {
       console.error(error);
-      if (doesStatusMatch(error, 400)) {
+      if (statusMatch(error, 400)) {
         messageApi.error("Invalid input");
         return;
       }

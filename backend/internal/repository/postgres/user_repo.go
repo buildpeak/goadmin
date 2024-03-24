@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 
@@ -23,7 +24,10 @@ func NewUserRepo(db Queryer) *UserRepo {
 }
 
 // FindAll returns all users from the database
-func (r *UserRepo) FindAll(ctx context.Context, filter *domain.UserFilter) ([]domain.User, error) {
+func (r *UserRepo) FindAll(
+	ctx context.Context,
+	filter *domain.UserFilter,
+) ([]domain.User, error) {
 	where := "1 = 1"
 	args := []interface{}{}
 
@@ -46,10 +50,18 @@ func (r *UserRepo) FindAll(ctx context.Context, filter *domain.UserFilter) ([]do
 		where += fmt.Sprintf(" AND deleted = $%d", len(args))
 	case filter.CreatedBetween[0].Before(filter.CreatedBetween[1]):
 		args = append(args, filter.CreatedBetween[0], filter.CreatedBetween[1])
-		where += fmt.Sprintf(" AND created_at BETWEEN $%d AND $%d", len(args)-1, len(args))
+		where += fmt.Sprintf(
+			" AND created_at BETWEEN $%d AND $%d",
+			len(args)-1,
+			len(args),
+		)
 	}
 
-	findAllQuery := fmt.Sprintf(`SELECT * FROM %s WHERE %s ORDER BY id`, userTable, where)
+	findAllQuery := fmt.Sprintf(
+		`SELECT * FROM %s WHERE %s ORDER BY id`,
+		userTable,
+		where,
+	)
 
 	results, err := query[domain.User](ctx, r.db, findAllQuery, args...)
 	if err != nil {
@@ -66,7 +78,10 @@ func (r *UserRepo) FindAll(ctx context.Context, filter *domain.UserFilter) ([]do
 }
 
 // FindByID returns a user from the database by id
-func (r *UserRepo) FindByID(ctx context.Context, usrID string) (*domain.User, error) {
+func (r *UserRepo) FindByID(
+	ctx context.Context,
+	usrID string,
+) (*domain.User, error) {
 	findByIDQuery := fmt.Sprintf(`SELECT * FROM %s
 	WHERE id = $1 AND NOT deleted AND active`, userTable)
 
@@ -83,14 +98,20 @@ func (r *UserRepo) FindByID(ctx context.Context, usrID string) (*domain.User, er
 }
 
 // FindByUsername returns a user from the database by username
-func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
+func (r *UserRepo) FindByUsername(
+	ctx context.Context,
+	username string,
+) (*domain.User, error) {
 	findByUsernameQuery := fmt.Sprintf(`SELECT * FROM %s
 	WHERE username = $1 AND NOT deleted AND active`, userTable)
 
 	user, err := queryRow[domain.User](ctx, r.db, findByUsernameQuery, username)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domain.NewResourceNotFoundError("User", "username="+username)
+			return nil, domain.NewResourceNotFoundError(
+				"User",
+				"username="+username,
+			)
 		}
 
 		return nil, fmt.Errorf("find user by username error: %w", err)
@@ -100,11 +121,14 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 }
 
 // Create a new user in the database
-func (r *UserRepo) Create(ctx context.Context, user *domain.User) (*domain.User, error) {
+func (r *UserRepo) Create(
+	ctx context.Context,
+	user *domain.User,
+) (*domain.User, error) {
 	createUserQuery := fmt.Sprintf(`INSERT INTO %s (
-		username, email, password, first_name, last_name
+		username, email, password, first_name, last_name, picture
 	) VALUES (
-		$1, $2, $3, $4, $5
+		$1, $2, $3, $4, $5, $6
 	) RETURNING *`, userTable)
 
 	newUsr, err := queryRow[domain.User](
@@ -116,6 +140,7 @@ func (r *UserRepo) Create(ctx context.Context, user *domain.User) (*domain.User,
 		user.Password,
 		user.FirstName,
 		user.LastName,
+		user.Picture,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create user error: %w", err)
@@ -125,27 +150,40 @@ func (r *UserRepo) Create(ctx context.Context, user *domain.User) (*domain.User,
 }
 
 // Update a user in the database
-func (r *UserRepo) Update(ctx context.Context, user *domain.User) (*domain.User, error) {
+func (r *UserRepo) Update(
+	ctx context.Context,
+	user *domain.User,
+) (*domain.User, error) {
+	fields := []string{}
+	args := []interface{}{}
+
+	switch {
+	case user.Username != "":
+		args = append(args, user.Username)
+		fields = append(fields, fmt.Sprintf("username = $%d", len(args)))
+	case user.Email != "":
+		args = append(args, user.Email)
+		fields = append(fields, fmt.Sprintf("email = $%d", len(args)))
+	case user.FirstName != "":
+		args = append(args, user.FirstName)
+		fields = append(fields, fmt.Sprintf("first_name = $%d", len(args)))
+	case user.LastName != "":
+		args = append(args, user.LastName)
+		fields = append(fields, fmt.Sprintf("last_name = $%d, ", len(args)))
+	}
+
+	args = append(args, user.ID)
+
 	updateUserQuery := fmt.Sprintf(`UPDATE %s SET
-			username = $1,
-			email = $2,
-			password = $3,
-			first_name = $4,
-			last_name = $5
-		WHERE id = $6
-		RETURNING *`, userTable)
+			%s
+		WHERE id = $%d
+		RETURNING *`, userTable, strings.Join(fields, ","), len(args))
 
 	updatedUsr, err := queryRow[domain.User](
 		ctx,
 		r.db,
 		updateUserQuery,
-		user.Username,
-		user.Email,
-		user.Password,
-		user.FirstName,
-		user.LastName,
-		user.ID,
-	)
+		args...)
 	if err != nil {
 		return nil, fmt.Errorf("update user error: %w", err)
 	}

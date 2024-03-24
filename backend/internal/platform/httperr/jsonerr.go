@@ -162,7 +162,7 @@ func (e ValidationError) Error() string {
 }
 
 func NewValidationError(
-	instance string,
+	instance, detail string,
 	errs []ValidationErrorItem,
 ) *ValidationError {
 	return &ValidationError{
@@ -170,11 +170,15 @@ func NewValidationError(
 			Type:     "/errors/validation-error",
 			Title:    "Validation Error",
 			Status:   http.StatusUnprocessableEntity,
-			Detail:   "One or more validation errors occurred",
+			Detail:   detail,
 			Instance: instance,
 		},
 		Errors: errs,
 	}
+}
+
+func (e ValidationError) Encode(res http.ResponseWriter) error {
+	return json.NewEncoder(res).Encode(e) //nolint:wrapcheck // no need to wrap
 }
 
 func JSONError(res http.ResponseWriter, err error, code int, endpoints ...string) {

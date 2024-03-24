@@ -55,12 +55,12 @@ func (v *OpenAPIValidator) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		valid, validationErrs := v.validator.ValidateHttpRequest(req)
 		if !valid {
-			var errs []error
-
 			validationErrItems := make([]httperr.ValidationErrorItem, 0)
 
+			var detail string
+
 			for _, err := range validationErrs {
-				errs = append(errs, err)
+				detail = err.Error()
 
 				for _, schemaErr := range err.SchemaValidationErrors {
 					validationErrItems = append(
@@ -73,14 +73,15 @@ func (v *OpenAPIValidator) Middleware(next http.Handler) http.Handler {
 				}
 			}
 
-			v.logger.Error(
-				"validation error",
-				slog.Any("err", errors.Join(errs...)),
-			)
-
 			validationError := httperr.NewValidationError(
 				req.URL.Path,
+				detail,
 				validationErrItems,
+			)
+
+			v.logger.Error(
+				"validation error",
+				slog.Any("err", validationError),
 			)
 
 			httperr.JSONError(
