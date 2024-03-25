@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"io"
 	"log/slog"
 	"os"
 
@@ -10,6 +11,7 @@ import (
 type LoggerConfig struct {
 	Level  slog.Level
 	Pretty bool
+	w      io.Writer
 }
 
 type Option func(*LoggerConfig)
@@ -31,6 +33,12 @@ func WithPretty(pretty bool) Option {
 	}
 }
 
+func WithWriter(w io.Writer) Option {
+	return func(c *LoggerConfig) {
+		c.w = w
+	}
+}
+
 func NewLogger(opts ...Option) *slog.Logger {
 	options := &LoggerConfig{
 		Level:  slog.LevelInfo,
@@ -44,13 +52,17 @@ func NewLogger(opts ...Option) *slog.Logger {
 	// create a handler
 	var handler slog.Handler
 
+	if options.w == nil {
+		options.w = os.Stdout
+	}
+
 	if options.Pretty {
-		handler = tint.NewHandler(os.Stdout, &tint.Options{
+		handler = tint.NewHandler(options.w, &tint.Options{
 			AddSource: true,
 			Level:     options.Level,
 		})
 	} else {
-		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		handler = slog.NewJSONHandler(options.w, &slog.HandlerOptions{
 			AddSource: true,
 			Level:     options.Level,
 		})

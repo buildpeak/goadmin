@@ -20,7 +20,7 @@ func (rtr *RevokedTokenRepo) AddRevokedToken(ctx context.Context, token string) 
 
 	_, err := rtr.db.Exec(ctx, query, token)
 	if err != nil {
-		return fmt.Errorf("add revoked token error: %w", err)
+		return fmt.Errorf("adding revoked_token error: %w", err)
 	}
 
 	return nil
@@ -33,7 +33,7 @@ func (rtr *RevokedTokenRepo) IsRevoked(ctx context.Context, token string) (bool,
 
 	err := rtr.db.QueryRow(ctx, query, token).Scan(&exists)
 	if err != nil {
-		return false, fmt.Errorf("is revoked token error: %w", err)
+		return false, fmt.Errorf("check revoked_token error: %w", err)
 	}
 
 	return exists, nil

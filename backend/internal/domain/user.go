@@ -23,6 +23,7 @@ type User struct {
 }
 
 type UserFilter struct {
+	Email          string       `json:"email"`
 	FirstName      string       `json:"first_name"`
 	LastName       string       `json:"last_name"`
 	Active         *bool        `json:"active"`

@@ -3,6 +3,8 @@ package domain
 import (
 	"fmt"
 	"strings"
+
+	"goadmin-backend/internal/platform/httperr"
 )
 
 // Error categories:
@@ -36,6 +38,16 @@ func (e baseError) GetMessage() string {
 	return e.Message
 }
 
+// ToRESTAPIError converts a domain error to a RESTAPIError.
+func (e baseError) ToRESTAPIError() *httperr.RESTAPIError {
+	return &httperr.RESTAPIError{
+		Type:   "/errors/" + e.GetType(),
+		Title:  strings.ToTitle(strings.ReplaceAll(e.GetType(), "-", " ")),
+		Detail: e.GetMessage(),
+		// Status: httperr.GetHTTPStatusCode(e.GetType()),
+	}
+}
+
 type ResourceNotFoundError struct {
 	baseError
 	Resource  string `json:"resource"`
@@ -45,7 +57,7 @@ type ResourceNotFoundError struct {
 func NewResourceNotFoundError(resource, condition string) *ResourceNotFoundError {
 	return &ResourceNotFoundError{
 		baseError: baseError{
-			Type: strings.ToLower(resource) + "_not_found",
+			Type: strings.ToLower(resource) + "-not-found",
 			Message: fmt.Sprintf(
 				"%s with condition %s not found",
 				resource,
@@ -66,7 +78,7 @@ type ResourceExistsError struct {
 func NewResourceExistsError(resource, conflict string) *ResourceExistsError {
 	return &ResourceExistsError{
 		baseError: baseError{
-			Type:    strings.ToLower(resource) + "_already_exists",
+			Type:    strings.ToLower(resource) + "-already-exists",
 			Message: fmt.Sprintf("%s with %s already exists", resource, conflict),
 		},
 		Resource: resource,

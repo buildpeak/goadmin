@@ -1,13 +1,13 @@
 package slices
 
-func Map[T, U any](src []T, fnc func(T) U) []U {
+func Map[T, U any](src []T, fun func(T) U) []U {
 	if len(src) == 0 {
 		return []U{}
 	}
 
 	r := make([]U, len(src))
 	for i, v := range src {
-		r[i] = fnc(v)
+		r[i] = fun(v)
 	}
 
 	return r

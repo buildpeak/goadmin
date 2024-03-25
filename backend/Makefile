@@ -26,7 +26,7 @@ test: ## run tests
 		sed "s/PASS/$$(printf '\033[32mPASS\033[0m')/" | \
 		sed "s/FAIL/$$(printf '\033[31mFAIL\033[0m')/" | \
 		sed "s/ok/$$(printf '\033[32mok\033[0m')/" | \
-		sed -E "s/coverage: ([89]...%|100%)/$$(printf 'coverage: \033[32m')\1$$(printf '\033[0m')/" | \
+		sed -E "s/coverage: ([89]...%|100.0%)/$$(printf 'coverage: \033[32m')\1$$(printf '\033[0m')/" | \
 		sed -E "s/coverage: ([6-7]...%)/$$(printf 'coverage: \033[33m')\1$$(printf '\033[0m')/" | \
 		sed -E "s/coverage: ([0-5]...%|[0-9]..%)/$$(printf 'coverage: \033[31m')\1$$(printf '\033[0m')/"
 

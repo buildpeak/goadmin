@@ -35,20 +35,32 @@ func (r *UserRepo) FindAll(
 		filter = &domain.UserFilter{}
 	}
 
-	switch {
-	case filter.FirstName != "":
+	if filter.Email != "" {
+		args = append(args, filter.Email)
+		where += fmt.Sprintf(" AND email = $%d", len(args))
+	}
+
+	if filter.FirstName != "" {
 		args = append(args, filter.FirstName)
 		where += fmt.Sprintf(" AND first_name = $%d", len(args))
-	case filter.LastName != "":
+	}
+
+	if filter.LastName != "" {
 		args = append(args, filter.LastName)
 		where += fmt.Sprintf(" AND last_name = $%d", len(args))
-	case filter.Active != nil:
+	}
+
+	if filter.Active != nil {
 		args = append(args, filter.Active)
 		where += fmt.Sprintf(" AND active = $%d", len(args))
-	case filter.Deleted != nil:
+	}
+
+	if filter.Deleted != nil {
 		args = append(args, filter.Deleted)
 		where += fmt.Sprintf(" AND deleted = $%d", len(args))
-	case filter.CreatedBetween[0].Before(filter.CreatedBetween[1]):
+	}
+
+	if filter.CreatedBetween[0].Before(filter.CreatedBetween[1]) {
 		args = append(args, filter.CreatedBetween[0], filter.CreatedBetween[1])
 		where += fmt.Sprintf(
 			" AND created_at BETWEEN $%d AND $%d",
@@ -157,19 +169,29 @@ func (r *UserRepo) Update(
 	fields := []string{}
 	args := []interface{}{}
 
-	switch {
-	case user.Username != "":
+	if user.Username != "" {
 		args = append(args, user.Username)
 		fields = append(fields, fmt.Sprintf("username = $%d", len(args)))
-	case user.Email != "":
+	}
+
+	if user.Email != "" {
 		args = append(args, user.Email)
 		fields = append(fields, fmt.Sprintf("email = $%d", len(args)))
-	case user.FirstName != "":
+	}
+
+	if user.FirstName != "" {
 		args = append(args, user.FirstName)
 		fields = append(fields, fmt.Sprintf("first_name = $%d", len(args)))
-	case user.LastName != "":
+	}
+
+	if user.LastName != "" {
 		args = append(args, user.LastName)
-		fields = append(fields, fmt.Sprintf("last_name = $%d, ", len(args)))
+		fields = append(fields, fmt.Sprintf("last_name = $%d", len(args)))
+	}
+
+	if user.Picture != "" {
+		args = append(args, user.Picture)
+		fields = append(fields, fmt.Sprintf("picture = $%d", len(args)))
 	}
 
 	args = append(args, user.ID)

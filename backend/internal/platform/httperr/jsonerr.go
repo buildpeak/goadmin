@@ -7,15 +7,25 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-
-	"goadmin-backend/internal/domain"
 )
 
 type jsonError interface {
+	// embed the error interface
 	error
-	Encode(res http.ResponseWriter) error
+
+	WriteJSON(res http.ResponseWriter) error
+
+	// GetInstance returns the instance of the error. It refers an endpoint or a resource.
 	GetInstance() string
+
+	// SetInstance sets the instance of the error.
 	SetInstance(instance string)
+
+	// GetStatus returns the HTTP status of the error.
+	GetStatus() int
+
+	// SetStatus sets the HTTP status of the error.
+	SetStatus(status int)
 }
 
 // RESTAPIError is a struct that represents the base error type for the API.
@@ -33,7 +43,7 @@ type RESTAPIError struct {
 	// Detail is a human-readable explanation specific to this occurrence of the problem.
 	Detail string `json:"detail"`
 
-	// Instance is a URI reference that identifies the specific occurrence of the problem.
+	// Instance is a URI reference that identifies the specific resource associated with the problem.
 	Instance string `json:"instance"`
 }
 
@@ -57,7 +67,7 @@ func NewRESTAPIError(
 	}
 }
 
-func (e RESTAPIError) Encode(res http.ResponseWriter) error {
+func (e RESTAPIError) WriteJSON(res http.ResponseWriter) error {
 	return json.NewEncoder(res).Encode(e) //nolint:wrapcheck // no need to wrap
 }
 
@@ -69,13 +79,16 @@ func (e *RESTAPIError) SetInstance(instance string) {
 	e.Instance = instance
 }
 
-func WithDomainError(err domain.Error, status int) *RESTAPIError {
-	return &RESTAPIError{
-		Type:   "/errors/" + err.GetType(),
-		Title:  strings.ToTitle(strings.ReplaceAll(err.GetType(), "_", " ")),
-		Status: status,
-		Detail: err.GetMessage(),
-	}
+func (e RESTAPIError) GetStatus() int {
+	return e.Status
+}
+
+func (e *RESTAPIError) SetStatus(status int) {
+	e.Status = status
+}
+
+type RESTAPIErrorCaster interface {
+	ToRESTAPIError() *RESTAPIError
 }
 
 func WithStatus(status int) *RESTAPIError {
@@ -99,7 +112,7 @@ func WithStatus(status int) *RESTAPIError {
 			Type:   "/errors/forbidden",
 			Title:  "Forbidden",
 			Status: http.StatusForbidden,
-			Detail: "You are forbidden from performing this action",
+			Detail: "You are not allowed to access this resource",
 		}
 	case http.StatusNotFound: // 404
 		return &RESTAPIError{
@@ -177,7 +190,7 @@ func NewValidationError(
 	}
 }
 
-func (e ValidationError) Encode(res http.ResponseWriter) error {
+func (e ValidationError) WriteJSON(res http.ResponseWriter) error {
 	return json.NewEncoder(res).Encode(e) //nolint:wrapcheck // no need to wrap
 }
 
@@ -191,7 +204,7 @@ func JSONError(res http.ResponseWriter, err error, code int, endpoints ...string
 
 	var validationError *ValidationError
 
-	var domainError domain.Error
+	var castedError RESTAPIErrorCaster
 
 	instance := strings.Join(endpoints, ",")
 
@@ -200,8 +213,8 @@ func JSONError(res http.ResponseWriter, err error, code int, endpoints ...string
 		jsnErr = restapiError
 	case errors.As(err, &validationError):
 		jsnErr = validationError
-	case errors.As(err, &domainError):
-		jsnErr = WithDomainError(domainError, code)
+	case errors.As(err, &castedError):
+		jsnErr = castedError.ToRESTAPIError()
 	case code != http.StatusInternalServerError:
 		jsnErr = WithStatus(code)
 	default:
@@ -215,7 +228,12 @@ func JSONError(res http.ResponseWriter, err error, code int, endpoints ...string
 		jsnErr.SetInstance(instance)
 	}
 
-	if err := jsnErr.Encode(res); err != nil {
+	// update status
+	if jsnErr.GetStatus() == 0 {
+		jsnErr.SetStatus(code)
+	}
+
+	if err := jsnErr.WriteJSON(res); err != nil {
 		slog.Error("error encoding json", slog.Any("err", err))
 	}
 }

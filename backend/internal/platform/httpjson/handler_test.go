@@ -1,8 +1,11 @@
 package httpjson
 
 import (
+	"bytes"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -25,7 +28,31 @@ func TestHandler_ParseJSON(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Success",
+			fields: fields{
+				Logger: slog.New(slog.NewTextHandler(os.Stderr, nil)),
+			},
+			args: args{
+				res: httptest.NewRecorder(),
+				req: httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte(`{"name":"John"}`))),
+				dataPtr: &struct {
+					Name string `json:"name"`
+				}{},
+			},
+		},
+		{
+			name: "Success with nil data",
+			fields: fields{
+				Logger: slog.New(slog.NewTextHandler(os.Stderr, nil)),
+			},
+			args: args{
+				res:     httptest.NewRecorder(),
+				req:     httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte(`{"name":"John"}`))),
+				dataPtr: nil,
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -57,12 +84,52 @@ func TestHandler_RespondJSON(t *testing.T) {
 		status int
 	}
 
+	type Person struct {
+		Name   string
+		Friend *Person // Circular reference
+	}
+
+	circular := Person{Name: "John"}
+	circular.Friend = &circular
+
 	tests := []struct {
 		name   string
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Success",
+			fields: fields{
+				Logger: slog.New(slog.NewTextHandler(os.Stderr, nil)),
+			},
+			args: args{
+				res:    httptest.NewRecorder(),
+				data:   struct{ Name string }{"John"},
+				status: http.StatusOK,
+			},
+		},
+		{
+			name: "Success with nil data",
+			fields: fields{
+				Logger: slog.New(slog.NewTextHandler(os.Stderr, nil)),
+			},
+			args: args{
+				res:    httptest.NewRecorder(),
+				data:   nil,
+				status: http.StatusOK,
+			},
+		},
+		{
+			name: "Fail with circular reference",
+			fields: fields{
+				Logger: slog.New(slog.NewTextHandler(os.Stderr, nil)),
+			},
+			args: args{
+				res:    httptest.NewRecorder(),
+				data:   circular,
+				status: http.StatusOK,
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt

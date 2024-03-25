@@ -127,6 +127,32 @@ paths:
       description: Sign a user in with Google
       tags:
         - auth
+  /auth/profile:
+    get:
+      summary: Get user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
+                  email:
+                    type: string
+                    format: email
+                  first_name:
+                    type: string
+                  last_name:
+                    type: string
+      operationId: auth-profile
+      description: Get user profile
+      tags:
+        - auth
 servers:
   - url: 'http://localhost:3600'
     description: Dev

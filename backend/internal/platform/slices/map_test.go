@@ -5,30 +5,47 @@ import (
 	"testing"
 )
 
-func TestMap(t *testing.T) {
+// TestMapEmpty tests the Map function with an empty slice
+func TestMapEmpty(t *testing.T) {
 	t.Parallel()
 
-	type args struct {
-		src []T
-		fnc func(T) U
+	result := Map([]int{}, func(n int) int {
+		return n * n
+	})
+
+	if len(result) != 0 {
+		t.Errorf("Expected empty slice, got %v", result)
 	}
+}
 
-	tests := []struct {
-		name string
-		args args
-		want []U
-	}{
-		// TODO: Add test cases.
+// TestMapSquare tests the Map function with a slice of integers, squaring each element
+func TestMapSquare(t *testing.T) {
+	t.Parallel()
+
+	src := []int{1, 2, 3, 4, 5}
+	expected := []int{1, 4, 9, 16, 25}
+
+	result := Map(src, func(n int) int {
+		return n * n
+	})
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("Expected %v, got %v", expected, result)
 	}
-	for _, tt := range tests {
-		tt := tt
+}
 
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+// TestMapStringLength tests the Map function with a slice of strings, getting the length of each
+func TestMapStringLength(t *testing.T) {
+	t.Parallel()
 
-			if got := Map(tt.args.src, tt.args.fnc); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Map() = %v, want %v", got, tt.want)
-			}
-		})
+	src := []string{"apple", "banana", "cherry"}
+	expected := []int{5, 6, 6}
+
+	result := Map(src, func(s string) int {
+		return len(s)
+	})
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("Expected %v, got %v", expected, result)
 	}
 }

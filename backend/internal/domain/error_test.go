@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"goadmin-backend/internal/platform/httperr"
 )
 
 func TestBaseError_Error(t *testing.T) {
@@ -82,6 +84,43 @@ func TestBaseError_As(t *testing.T) {
 	}
 }
 
+func TestBaseError_ToRESTAPIError(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		baseErr baseError
+		want    *httperr.RESTAPIError
+	}{
+		{
+			name: "Success",
+			baseErr: baseError{
+				Type:    "test",
+				Message: "test error",
+			},
+			want: &httperr.RESTAPIError{
+				Type:   "/errors/test",
+				Title:  "TEST",
+				Detail: "test error",
+			},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := tt.baseErr.ToRESTAPIError(); !reflect.DeepEqual(
+				got,
+				tt.want,
+			) {
+				t.Errorf("WithDomainError() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNewResourceNotFoundError(t *testing.T) {
 	t.Parallel()
 
@@ -103,7 +142,7 @@ func TestNewResourceNotFoundError(t *testing.T) {
 			},
 			want: &ResourceNotFoundError{
 				baseError: baseError{
-					Type:    "user_not_found",
+					Type:    "user-not-found",
 					Message: "User with condition id=1 not found",
 				},
 				Resource:  "User",

@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"goadmin-backend/internal/domain"
+	"goadmin-backend/internal/platform/random"
 )
 
 var testUsers = []domain.User{
@@ -38,6 +39,20 @@ var testUsers = []domain.User{
 		CreatedAt: strToTime("2024-02-01T00:00:00+00:00"),
 		UpdatedAt: strToTime("2024-02-01T00:00:00+00:00"),
 	},
+}
+
+func ptr[T any](v T) *T {
+	return &v
+}
+
+func randomUser() *domain.User {
+	return &domain.User{
+		Username:  random.String(10),
+		Email:     random.String(10) + "@goadmin.com",
+		Password:  random.String(10),
+		FirstName: random.String(10),
+		LastName:  random.String(10),
+	}
 }
 
 func strToTime(s string) time.Time {
@@ -111,13 +126,12 @@ func Test_UserRepo_FindAll(t *testing.T) {
 	t.Parallel()
 
 	conn, teardown := before(t)
+
+	userRepo := NewUserRepo(conn)
+
 	t.Cleanup(func() {
 		teardown(t)
 	})
-
-	type fields struct {
-		db *pgxpool.Pool
-	}
 
 	type args struct {
 		filter *domain.UserFilter
@@ -125,16 +139,12 @@ func Test_UserRepo_FindAll(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
 		want    []domain.User
 		wantErr bool
 	}{
 		{
 			name: "success",
-			fields: fields{
-				db: conn,
-			},
 			args: args{
 				filter: &domain.UserFilter{
 					CreatedBetween: [2]time.Time{
@@ -148,12 +158,22 @@ func Test_UserRepo_FindAll(t *testing.T) {
 		},
 		{
 			name: "success with filter",
-			fields: fields{
-				db: conn,
-			},
 			args: args{
 				filter: &domain.UserFilter{
 					FirstName: "John",
+					Email:     "johndoe@goadmin.com",
+				},
+			},
+			want: testUsers[:1],
+		},
+		{
+			name: "success with filter",
+			args: args{
+				filter: &domain.UserFilter{
+					LastName: "Doe",
+					Email:    "johndoe@goadmin.com",
+					Active:   ptr(true),
+					Deleted:  ptr(false),
 				},
 			},
 			want: testUsers[:1],
@@ -165,11 +185,7 @@ func Test_UserRepo_FindAll(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			r := &UserRepo{
-				db: tt.fields.db,
-			}
-
-			got, err := r.FindAll(context.Background(), tt.args.filter)
+			got, err := userRepo.FindAll(context.Background(), tt.args.filter)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"UserRepo.FindAll() name = %s error = %v, wantErr %v",
@@ -192,13 +208,12 @@ func Test_UserRepo_FindByID(t *testing.T) {
 	t.Parallel()
 
 	conn, teardown := before(t)
+
+	userRepo := NewUserRepo(conn)
+
 	t.Cleanup(func() {
 		teardown(t)
 	})
-
-	type fields struct {
-		db *pgxpool.Pool
-	}
 
 	type args struct {
 		id string
@@ -206,20 +221,23 @@ func Test_UserRepo_FindByID(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
 		want    *domain.User
 		wantErr bool
 	}{
 		{
 			name: "success",
-			fields: fields{
-				db: conn,
-			},
 			args: args{
 				id: "1",
 			},
 			want: &testUsers[0],
+		},
+		{
+			name: "fail",
+			args: args{
+				id: "aaaaaa",
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -228,11 +246,7 @@ func Test_UserRepo_FindByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			r := &UserRepo{
-				db: tt.fields.db,
-			}
-
-			got, err := r.FindByID(context.Background(), tt.args.id)
+			got, err := userRepo.FindByID(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"UserRepo.FindByID() error = %v, wantErr %v",
@@ -254,13 +268,12 @@ func Test_UserRepo_FindByUsername(t *testing.T) {
 	t.Parallel()
 
 	conn, teardown := before(t)
+
+	userRepo := NewUserRepo(conn)
+
 	t.Cleanup(func() {
 		teardown(t)
 	})
-
-	type fields struct {
-		db *pgxpool.Pool
-	}
 
 	type args struct {
 		username string
@@ -268,20 +281,23 @@ func Test_UserRepo_FindByUsername(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
 		want    *domain.User
 		wantErr bool
 	}{
 		{
 			name: "success",
-			fields: fields{
-				db: conn,
-			},
 			args: args{
 				username: "janedoe",
 			},
 			want: &testUsers[1],
+		},
+		{
+			name: "fail",
+			args: args{
+				username: "aaaaaa",
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -290,11 +306,7 @@ func Test_UserRepo_FindByUsername(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			r := &UserRepo{
-				db: tt.fields.db,
-			}
-
-			got, err := r.FindByUsername(context.Background(), tt.args.username)
+			got, err := userRepo.FindByUsername(context.Background(), tt.args.username)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"UserRepo.FindByUsername() error = %v, wantErr %v",
@@ -320,13 +332,12 @@ func Test_UserRepo_Create(t *testing.T) {
 	t.Parallel()
 
 	conn, teardown := before(t)
+
+	userRepo := NewUserRepo(conn)
+
 	t.Cleanup(func() {
 		teardown(t)
 	})
-
-	type fields struct {
-		db *pgxpool.Pool
-	}
 
 	type args struct {
 		user *domain.User
@@ -334,19 +345,14 @@ func Test_UserRepo_Create(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
 		want    *domain.User
 		wantErr bool
 	}{
 		{
 			name: "success",
-			fields: fields{
-				db: conn,
-			},
 			args: args{
 				user: &domain.User{
-					ID:        "3",
 					Username:  "jackc",
 					Email:     "jackc@goadmin.com",
 					Password:  "test!only",
@@ -355,7 +361,6 @@ func Test_UserRepo_Create(t *testing.T) {
 				},
 			},
 			want: &domain.User{
-				ID:        "3",
 				Username:  "jackc",
 				Email:     "jackc@goadmin.com",
 				Password:  "test!only",
@@ -372,11 +377,7 @@ func Test_UserRepo_Create(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			r := &UserRepo{
-				db: tt.fields.db,
-			}
-
-			got, err := r.Create(context.Background(), tt.args.user)
+			got, err := userRepo.Create(context.Background(), tt.args.user)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(
 					"UserRepo.Create() error = %v, wantErr %v",
@@ -395,6 +396,10 @@ func Test_UserRepo_Create(t *testing.T) {
 				tt.want.UpdatedAt = got.UpdatedAt
 			}
 
+			if got.ID != "" {
+				tt.want.ID = got.ID
+			}
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("UserRepo.Create() = %v, want %v", got, tt.want)
 			}
@@ -406,13 +411,18 @@ func TestUserRepo_Update(t *testing.T) {
 	t.Parallel()
 
 	conn, teardown := before(t)
+
+	userRepo := NewUserRepo(conn)
+
+	testUsr, err := userRepo.Create(context.Background(), randomUser())
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	t.Cleanup(func() {
 		teardown(t)
+		userRepo.Delete(context.Background(), testUsr.ID)
 	})
-
-	type fields struct {
-		db Queryer
-	}
 
 	type args struct {
 		user *domain.User
@@ -420,24 +430,35 @@ func TestUserRepo_Update(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
 		want    *domain.User
 		wantErr bool
 	}{
 		{
 			name: "Success",
-			fields: fields{
-				db: conn,
-			},
 			args: args{
 				user: &domain.User{
-					ID:       "1",
-					Username: "johndoe",
-					Email:    "jd@example.com",
+					ID:        testUsr.ID,
+					Username:  "johndoe_updated",
+					Email:     "johndoe_updated@example.com",
+					FirstName: "John",
+					LastName:  "Doe",
+					Picture:   "https://example.com/johndoe_updated.jpg",
 				},
 			},
-			want: &testUsers[0],
+			want: &domain.User{
+				ID:        testUsr.ID,
+				Username:  "johndoe_updated",
+				Email:     "johndoe_updated@example.com",
+				Password:  testUsr.Password,
+				FirstName: "John",
+				LastName:  "Doe",
+				Active:    testUsr.Active,
+				Picture:   "https://example.com/johndoe_updated.jpg",
+				Deleted:   testUsr.Deleted,
+				CreatedAt: testUsr.CreatedAt,
+				UpdatedAt: testUsr.UpdatedAt,
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -446,11 +467,7 @@ func TestUserRepo_Update(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			r := &UserRepo{
-				db: tt.fields.db,
-			}
-
-			got, err := r.Update(context.Background(), tt.args.user)
+			got, err := userRepo.Update(context.Background(), tt.args.user)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UserRepo.Update() error = %v, wantErr %v", err, tt.wantErr)
@@ -476,13 +493,18 @@ func TestUserRepo_SoftDelete(t *testing.T) {
 	t.Parallel()
 
 	conn, teardown := before(t)
+
+	userRepo := NewUserRepo(conn)
+
+	testUsr, err := userRepo.Create(context.Background(), randomUser())
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	t.Cleanup(func() {
 		teardown(t)
+		userRepo.Delete(context.Background(), testUsr.ID)
 	})
-
-	type fields struct {
-		db Queryer
-	}
 
 	type args struct {
 		usrID string
@@ -490,24 +512,17 @@ func TestUserRepo_SoftDelete(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
 		wantErr bool
 	}{
 		{
 			name: "Success",
-			fields: fields{
-				db: conn,
-			},
 			args: args{
-				usrID: "1",
+				usrID: testUsr.ID,
 			},
 		},
 		{
 			name: "Fail",
-			fields: fields{
-				db: conn,
-			},
 			args: args{
 				usrID: "aaaaaa",
 			},
@@ -520,11 +535,7 @@ func TestUserRepo_SoftDelete(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			r := &UserRepo{
-				db: tt.fields.db,
-			}
-
-			if err := r.SoftDelete(context.Background(), tt.args.usrID); (err != nil) != tt.wantErr {
+			if err := userRepo.SoftDelete(context.Background(), tt.args.usrID); (err != nil) != tt.wantErr {
 				t.Errorf("UserRepo.SoftDelete() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -535,13 +546,18 @@ func TestUserRepo_Delete(t *testing.T) {
 	t.Parallel()
 
 	conn, teardown := before(t)
+
+	userRepo := NewUserRepo(conn)
+
+	testUsr, err := userRepo.Create(context.Background(), randomUser())
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	t.Cleanup(func() {
 		teardown(t)
+		userRepo.Delete(context.Background(), testUsr.ID)
 	})
-
-	type fields struct {
-		db Queryer
-	}
 
 	type args struct {
 		id string
@@ -549,24 +565,17 @@ func TestUserRepo_Delete(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
 		wantErr bool
 	}{
 		{
 			name: "Success",
-			fields: fields{
-				db: conn,
-			},
 			args: args{
-				id: "1",
+				id: testUsr.ID,
 			},
 		},
 		{
 			name: "Fail",
-			fields: fields{
-				db: conn,
-			},
 			args: args{
 				id: "aaaaaa",
 			},
@@ -579,11 +588,7 @@ func TestUserRepo_Delete(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			r := &UserRepo{
-				db: tt.fields.db,
-			}
-
-			if err := r.Delete(context.Background(), tt.args.id); (err != nil) != tt.wantErr {
+			if err := userRepo.Delete(context.Background(), tt.args.id); (err != nil) != tt.wantErr {
 				t.Errorf("UserRepo.Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

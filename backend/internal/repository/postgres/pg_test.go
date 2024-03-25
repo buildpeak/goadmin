@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/buildpeak/sqltestutil"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/goleak"
 )
@@ -413,4 +415,30 @@ func (t *txMock) Exec(_ context.Context, _ string, _ ...any) error {
 	}
 
 	return nil
+}
+
+type rowMock struct {
+	err error
+}
+
+func (r *rowMock) Scan(_ ...any) error {
+	return r.err
+}
+
+type queryerMock struct {
+	err error
+}
+
+var _ Queryer = &queryerMock{}
+
+func (q *queryerMock) QueryRow(_ context.Context, _ string, _ ...any) pgx.Row {
+	return &rowMock{err: q.err}
+}
+
+func (q *queryerMock) Query(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
+	return nil, q.err
+}
+
+func (q *queryerMock) Exec(_ context.Context, _ string, _ ...any) (pgconn.CommandTag, error) {
+	return pgconn.CommandTag{}, q.err
 }
