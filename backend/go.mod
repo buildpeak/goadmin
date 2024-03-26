@@ -8,6 +8,7 @@ require (
 	github.com/go-chi/cors v1.2.1
 	github.com/go-chi/httplog/v2 v2.0.9
 	github.com/golang-jwt/jwt/v5 v5.2.0
+	github.com/gorilla/handlers v1.5.2
 	github.com/gorilla/mux v1.8.1
 	github.com/honeycombio/otel-config-go v1.14.0
 	github.com/jackc/pgx/v5 v5.5.3
