@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -60,7 +59,19 @@ func TestChiRouterWrapper_Group(t *testing.T) {
 		args   args
 		want   Router
 	}{
-		// TODO
+		{
+			name: "group",
+			fields: fields{
+				Mux: chi.NewRouter(),
+			},
+			args: args{
+				grpHandler: func(r Router) {
+					r.Get("/", func(w http.ResponseWriter, _ *http.Request) {
+						w.Write([]byte("OK"))
+					})
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -72,8 +83,19 @@ func TestChiRouterWrapper_Group(t *testing.T) {
 				Mux: tt.fields.Mux,
 			}
 
-			if got := c.Group(tt.args.grpHandler); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ChiRouterWrapper.Group() = %v, want %v", got, tt.want)
+			c.Group(tt.args.grpHandler)
+
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			w := httptest.NewRecorder()
+
+			c.ServeHTTP(w, req)
+
+			if got := w.Code; got != http.StatusOK {
+				t.Errorf("GorillaRouterWrapper.Route() = %v, want %v", got, http.StatusOK)
+			}
+
+			if got := w.Body.String(); got != "OK" {
+				t.Errorf("GorillaRouterWrapper.Route() = %v, want %v", got, "OK")
 			}
 		})
 	}
@@ -97,7 +119,20 @@ func TestChiRouterWrapper_Route(t *testing.T) {
 		args   args
 		want   Router
 	}{
-		// TODO
+		{
+			name: "route",
+			fields: fields{
+				Mux: chi.NewRouter(),
+			},
+			args: args{
+				pattern: "/test",
+				rtHandler: func(r Router) {
+					r.Get("/", func(w http.ResponseWriter, _ *http.Request) {
+						w.Write([]byte("OK"))
+					})
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -109,8 +144,78 @@ func TestChiRouterWrapper_Route(t *testing.T) {
 				Mux: tt.fields.Mux,
 			}
 
-			if got := c.Route(tt.args.pattern, tt.args.rtHandler); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ChiRouterWrapper.Route() = %v, want %v", got, tt.want)
+			c.Route(tt.args.pattern, tt.args.rtHandler)
+
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			w := httptest.NewRecorder()
+
+			c.ServeHTTP(w, req)
+
+			if got := w.Code; got != http.StatusOK {
+				t.Errorf("GorillaRouterWrapper.Route() = %v, want %v", got, http.StatusOK)
+			}
+
+			if got := w.Body.String(); got != "OK" {
+				t.Errorf("GorillaRouterWrapper.Route() = %v, want %v", got, "OK")
+			}
+		})
+	}
+}
+
+func TestChiRouterWrapper_Get(t *testing.T) {
+	t.Parallel()
+
+	type fields struct {
+		Mux *chi.Mux
+	}
+
+	type args struct {
+		pattern string
+		h       http.HandlerFunc
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+	}{
+		{
+			name: "get",
+			fields: fields{
+				Mux: chi.NewRouter(),
+			},
+			args: args{
+				pattern: "/",
+				h: func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte("OK"))
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := &ChiRouterWrapper{
+				Mux: tt.fields.Mux,
+			}
+
+			c.Get(tt.args.pattern, tt.args.h)
+
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			w := httptest.NewRecorder()
+
+			c.ServeHTTP(w, req)
+
+			if got := w.Code; got != http.StatusOK {
+				t.Errorf("GorillaRouterWrapper.Trace() = %v, want %v", got, http.StatusOK)
+			}
+
+			if got := w.Body.String(); got != "OK" {
+				t.Errorf("GorillaRouterWrapper.Trace() = %v, want %v", got, "OK")
 			}
 		})
 	}

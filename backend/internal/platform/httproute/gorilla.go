@@ -10,6 +10,8 @@ import (
 
 type GorillaRouterWrapper struct {
 	*mux.Router
+
+	pathPrefixes []string
 }
 
 // Use is a wrapper method for mux.Router.Use
@@ -30,7 +32,7 @@ func (g *GorillaRouterWrapper) Group(
 	grpHandler func(r Router),
 ) Router {
 	sr := g.NewRoute().Subrouter()
-	wrp := &GorillaRouterWrapper{sr}
+	wrp := &GorillaRouterWrapper{Router: sr}
 	grpHandler(wrp)
 
 	return wrp
@@ -41,46 +43,62 @@ func (g *GorillaRouterWrapper) Route(
 	pattern string,
 	rtHandler func(r Router),
 ) Router {
-	sr := g.NewRoute().Path(pattern).Subrouter()
-	wrp := &GorillaRouterWrapper{sr}
+	sr := g.PathPrefix(pattern).Subrouter()
+	pathPrefixes := make([]string, len(g.pathPrefixes)+1)
+	copy(pathPrefixes, g.pathPrefixes)
+	pathPrefixes[len(pathPrefixes)-1] = pattern
+	wrp := &GorillaRouterWrapper{Router: sr, pathPrefixes: pathPrefixes}
 	rtHandler(wrp)
 
 	return wrp
 }
 
+func (g *GorillaRouterWrapper) installHander(
+	method, pattern string,
+	handler http.HandlerFunc,
+) {
+	if len(g.pathPrefixes) > 0 && pattern == "/" {
+		pattern = ""
+	}
+
+	g.Router.SkipClean(true)
+
+	g.HandleFunc(pattern, handler).Methods(method)
+}
+
 // HTTP-method routing along `pattern`
 func (g *GorillaRouterWrapper) Connect(pattern string, h http.HandlerFunc) {
-	g.HandleFunc(pattern, h).Methods(http.MethodConnect)
+	g.installHander(http.MethodConnect, pattern, h)
 }
 
 func (g *GorillaRouterWrapper) Delete(pattern string, h http.HandlerFunc) {
-	g.HandleFunc(pattern, h).Methods(http.MethodDelete)
+	g.installHander(http.MethodDelete, pattern, h)
 }
 
 func (g *GorillaRouterWrapper) Get(pattern string, h http.HandlerFunc) {
-	g.HandleFunc(pattern, h).Methods(http.MethodGet)
+	g.installHander(http.MethodGet, pattern, h)
 }
 
 func (g *GorillaRouterWrapper) Head(pattern string, h http.HandlerFunc) {
-	g.HandleFunc(pattern, h).Methods(http.MethodHead)
+	g.installHander(http.MethodHead, pattern, h)
 }
 
 func (g *GorillaRouterWrapper) Options(pattern string, h http.HandlerFunc) {
-	g.HandleFunc(pattern, h).Methods(http.MethodOptions)
+	g.installHander(http.MethodOptions, pattern, h)
 }
 
 func (g *GorillaRouterWrapper) Patch(pattern string, h http.HandlerFunc) {
-	g.HandleFunc(pattern, h).Methods(http.MethodPatch)
+	g.installHander(http.MethodPatch, pattern, h)
 }
 
 func (g *GorillaRouterWrapper) Post(pattern string, h http.HandlerFunc) {
-	g.HandleFunc(pattern, h).Methods(http.MethodPost)
+	g.installHander(http.MethodPost, pattern, h)
 }
 
 func (g *GorillaRouterWrapper) Put(pattern string, h http.HandlerFunc) {
-	g.HandleFunc(pattern, h).Methods(http.MethodPut)
+	g.installHander(http.MethodPut, pattern, h)
 }
 
 func (g *GorillaRouterWrapper) Trace(pattern string, h http.HandlerFunc) {
-	g.HandleFunc(pattern, h).Methods(http.MethodTrace)
+	g.installHander(http.MethodTrace, pattern, h)
 }

@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 
 	"github.com/gorilla/mux"
@@ -47,6 +46,7 @@ func ExampleGorillaRouterWrapper() {
 		fmt.Println(err)
 		return
 	}
+
 	fmt.Printf("%d %s", res.StatusCode, string(body))
 	// Output: 200 GET /v1/users
 }
@@ -67,7 +67,22 @@ func TestGorillaRouterWrapper_Use(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "use middleware",
+			fields: fields{
+				Router: mux.NewRouter(),
+			},
+			args: args{
+				middleware: []func(http.Handler) http.Handler{
+					func(next http.Handler) http.Handler {
+						return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+							w.Header().Set("X-Test", "test")
+							next.ServeHTTP(w, r)
+						})
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -80,6 +95,28 @@ func TestGorillaRouterWrapper_Use(t *testing.T) {
 			}
 
 			g.Use(tt.args.middleware...)
+
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			w := httptest.NewRecorder()
+
+			g.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("OK"))
+			})
+
+			g.ServeHTTP(w, req)
+
+			if got := w.Header().Get("X-Test"); got != "test" {
+				t.Errorf("GorillaRouterWrapper.Use() = %v, want %v", got, "test")
+			}
+
+			if got := w.Code; got != http.StatusOK {
+				t.Errorf("GorillaRouterWrapper.Use() = %v, want %v", got, http.StatusOK)
+			}
+
+			if got := w.Body.String(); got != "OK" {
+				t.Errorf("GorillaRouterWrapper.Use() = %v, want %v", got, "OK")
+			}
 		})
 	}
 }
@@ -101,7 +138,20 @@ func TestGorillaRouterWrapper_Group(t *testing.T) {
 		args   args
 		want   Router
 	}{
-		// TODO: Add test cases.
+		{
+			name: "group",
+			fields: fields{
+				Router: mux.NewRouter(),
+			},
+			args: args{
+				grpHandler: func(r Router) {
+					r.Get("/", func(w http.ResponseWriter, _ *http.Request) {
+						w.WriteHeader(http.StatusOK)
+						w.Write([]byte("OK"))
+					})
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -113,8 +163,19 @@ func TestGorillaRouterWrapper_Group(t *testing.T) {
 				Router: tt.fields.Router,
 			}
 
-			if got := g.Group(tt.args.grpHandler); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GorillaRouterWrapper.Group() = %v, want %v", got, tt.want)
+			g.Group(tt.args.grpHandler)
+
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			w := httptest.NewRecorder()
+
+			g.ServeHTTP(w, req)
+
+			if got := w.Code; got != http.StatusOK {
+				t.Errorf("GorillaRouterWrapper.Route() = %v, want %v", got, http.StatusOK)
+			}
+
+			if got := w.Body.String(); got != "OK" {
+				t.Errorf("GorillaRouterWrapper.Route() = %v, want %v", got, "OK")
 			}
 		})
 	}
@@ -138,7 +199,21 @@ func TestGorillaRouterWrapper_Route(t *testing.T) {
 		args   args
 		want   Router
 	}{
-		// TODO: Add test cases.
+		{
+			name: "route",
+			fields: fields{
+				Router: mux.NewRouter(),
+			},
+			args: args{
+				pattern: "/test",
+				rtHandler: func(r Router) {
+					r.Get("/", func(w http.ResponseWriter, _ *http.Request) {
+						w.WriteHeader(http.StatusOK)
+						w.Write([]byte("OK"))
+					})
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -150,10 +225,38 @@ func TestGorillaRouterWrapper_Route(t *testing.T) {
 				Router: tt.fields.Router,
 			}
 
-			if got := g.Route(tt.args.pattern, tt.args.rtHandler); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GorillaRouterWrapper.Route() = %v, want %v", got, tt.want)
+			g.Route(tt.args.pattern, tt.args.rtHandler)
+
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			w := httptest.NewRecorder()
+
+			g.ServeHTTP(w, req)
+
+			if got := w.Code; got != http.StatusOK {
+				t.Errorf("GorillaRouterWrapper.Route() = %v, want %v", got, http.StatusOK)
+			}
+
+			if got := w.Body.String(); got != "OK" {
+				t.Errorf("GorillaRouterWrapper.Route() = %v, want %v", got, "OK")
 			}
 		})
+	}
+}
+
+func checkHTTPMethodFunc(t *testing.T, g *GorillaRouterWrapper, method string) {
+	t.Helper()
+
+	req := httptest.NewRequest(method, "/", nil)
+	w := httptest.NewRecorder()
+
+	g.ServeHTTP(w, req)
+
+	if got := w.Code; got != http.StatusOK {
+		t.Errorf("GorillaRouterWrapper.Trace() = %v, want %v", got, http.StatusOK)
+	}
+
+	if got := w.Body.String(); got != "OK" {
+		t.Errorf("GorillaRouterWrapper.Trace() = %v, want %v", got, "OK")
 	}
 }
 
@@ -174,7 +277,19 @@ func TestGorillaRouterWrapper_Connect(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "connect",
+			fields: fields{
+				Router: mux.NewRouter(),
+			},
+			args: args{
+				pattern: "/",
+				h: func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte("OK"))
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -187,6 +302,8 @@ func TestGorillaRouterWrapper_Connect(t *testing.T) {
 			}
 
 			g.Connect(tt.args.pattern, tt.args.h)
+
+			checkHTTPMethodFunc(t, g, http.MethodConnect)
 		})
 	}
 }
@@ -208,7 +325,19 @@ func TestGorillaRouterWrapper_Delete(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "delete",
+			fields: fields{
+				Router: mux.NewRouter(),
+			},
+			args: args{
+				pattern: "/",
+				h: func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte("OK"))
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -221,6 +350,8 @@ func TestGorillaRouterWrapper_Delete(t *testing.T) {
 			}
 
 			g.Delete(tt.args.pattern, tt.args.h)
+
+			checkHTTPMethodFunc(t, g, http.MethodDelete)
 		})
 	}
 }
@@ -242,7 +373,19 @@ func TestGorillaRouterWrapper_Get(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "get",
+			fields: fields{
+				Router: mux.NewRouter(),
+			},
+			args: args{
+				pattern: "/",
+				h: func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte("OK"))
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -255,6 +398,8 @@ func TestGorillaRouterWrapper_Get(t *testing.T) {
 			}
 
 			g.Get(tt.args.pattern, tt.args.h)
+
+			checkHTTPMethodFunc(t, g, http.MethodGet)
 		})
 	}
 }
@@ -276,7 +421,19 @@ func TestGorillaRouterWrapper_Head(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "head",
+			fields: fields{
+				Router: mux.NewRouter(),
+			},
+			args: args{
+				pattern: "/",
+				h: func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte("OK"))
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -289,6 +446,8 @@ func TestGorillaRouterWrapper_Head(t *testing.T) {
 			}
 
 			g.Head(tt.args.pattern, tt.args.h)
+
+			checkHTTPMethodFunc(t, g, http.MethodHead)
 		})
 	}
 }
@@ -310,7 +469,19 @@ func TestGorillaRouterWrapper_Options(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "options",
+			fields: fields{
+				Router: mux.NewRouter(),
+			},
+			args: args{
+				pattern: "/",
+				h: func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte("OK"))
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -323,6 +494,8 @@ func TestGorillaRouterWrapper_Options(t *testing.T) {
 			}
 
 			g.Options(tt.args.pattern, tt.args.h)
+
+			checkHTTPMethodFunc(t, g, http.MethodOptions)
 		})
 	}
 }
@@ -344,7 +517,19 @@ func TestGorillaRouterWrapper_Patch(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "patch",
+			fields: fields{
+				Router: mux.NewRouter(),
+			},
+			args: args{
+				pattern: "/",
+				h: func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte("OK"))
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -357,6 +542,8 @@ func TestGorillaRouterWrapper_Patch(t *testing.T) {
 			}
 
 			g.Patch(tt.args.pattern, tt.args.h)
+
+			checkHTTPMethodFunc(t, g, http.MethodPatch)
 		})
 	}
 }
@@ -378,7 +565,19 @@ func TestGorillaRouterWrapper_Post(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "post",
+			fields: fields{
+				Router: mux.NewRouter(),
+			},
+			args: args{
+				pattern: "/",
+				h: func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte("OK"))
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -391,6 +590,8 @@ func TestGorillaRouterWrapper_Post(t *testing.T) {
 			}
 
 			g.Post(tt.args.pattern, tt.args.h)
+
+			checkHTTPMethodFunc(t, g, http.MethodPost)
 		})
 	}
 }
@@ -412,7 +613,19 @@ func TestGorillaRouterWrapper_Put(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "put",
+			fields: fields{
+				Router: mux.NewRouter(),
+			},
+			args: args{
+				pattern: "/",
+				h: func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte("OK"))
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -425,6 +638,8 @@ func TestGorillaRouterWrapper_Put(t *testing.T) {
 			}
 
 			g.Put(tt.args.pattern, tt.args.h)
+
+			checkHTTPMethodFunc(t, g, http.MethodPut)
 		})
 	}
 }
@@ -446,7 +661,19 @@ func TestGorillaRouterWrapper_Trace(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "trace",
+			fields: fields{
+				Router: mux.NewRouter(),
+			},
+			args: args{
+				pattern: "/",
+				h: func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte("OK"))
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -459,6 +686,8 @@ func TestGorillaRouterWrapper_Trace(t *testing.T) {
 			}
 
 			g.Trace(tt.args.pattern, tt.args.h)
+
+			checkHTTPMethodFunc(t, g, http.MethodTrace)
 		})
 	}
 }
