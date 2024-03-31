@@ -32,6 +32,7 @@ type Service interface {
 		idToken, audience string,
 	) (*domain.JWTToken, error)
 	Logout(ctx context.Context, tokenString string) error
+	Profile(ctx context.Context, tokenString string) (*domain.User, error)
 }
 
 var _ Service = &authService{}
@@ -194,4 +195,17 @@ func (a *authService) Register(
 	}
 
 	return savedUser, nil
+}
+
+// Profile returns the current user profile
+func (a *authService) Profile(
+	ctx context.Context,
+	tokenString string,
+) (*domain.User, error) {
+	user, err := a.VerifyToken(ctx, tokenString)
+	if err != nil {
+		return nil, fmt.Errorf("verify token error %w", err)
+	}
+
+	return user, nil
 }

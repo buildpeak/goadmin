@@ -83,11 +83,15 @@ func main() {
 	}
 
 	// router
-	apiHandler := api.NewRouter(openapiValidator, &api.Handlers{
-		AuthHandler:   auth.NewHandler(authService, logger),
-		UserHandler:   user.NewHandler(userService),
-		HealthHandler: api.NewHealthHandler(logger),
-	})
+	apiHandler := api.NewRouter(
+		openapiValidator,
+		&api.Handlers{
+			AuthHandler:   auth.NewHandler(authService, logger),
+			UserHandler:   user.NewHandler(userService),
+			HealthHandler: api.NewHealthHandler(logger),
+		},
+		logger,
+	)
 
 	// // otel
 	// shutdownOtel, err := api.StartOtel(

@@ -11,6 +11,8 @@ tags:
     description: Authentication
   - name: general
     description: General endpoints
+  - name: users
+    description: Users
 paths:
   /health:
     get:
@@ -153,6 +155,80 @@ paths:
       description: Get user profile
       tags:
         - auth
+  /v1/users:
+    get:
+      summary: Your GET endpoint
+      tags:
+        - users
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+      operationId: get-v1-users
+      description: Get list of users
+  '/v1/users/{id}':
+    parameters:
+      - schema:
+          type: string
+        name: id
+        in: path
+        required: true
+    get:
+      summary: Your GET endpoint
+      tags:
+        - users
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+      operationId: get-v1-users-id
+      requestBody:
+        content: {}
+      description: Get a user
+    patch:
+      summary: ''
+      operationId: patch-v1-users-id
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+      description: update a user
+      tags:
+        - users
+  '/v1/users/{id}/roles':
+    parameters:
+      - schema:
+          type: string
+        name: id
+        in: path
+        required: true
+    get:
+      summary: Your GET endpoint
+      tags:
+        - users
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+      operationId: get-v1-users-id-roles
+      description: List of roles
 servers:
   - url: 'http://localhost:3600'
     description: Dev
@@ -161,3 +237,85 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
+  schemas:
+    User:
+      title: User
+      x-stoplight:
+        id: nviuuwfi0q2l8
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+          x-stoplight:
+            id: 5m9249al38jfl
+          maxLength: 320
+        password:
+          type: string
+          x-stoplight:
+            id: wm2ro59flsiy3
+          maxLength: 255
+        email:
+          type: string
+          x-stoplight:
+            id: d7p4mo35d3uwa
+          maxLength: 320
+          format: email
+        first_name:
+          type: string
+          x-stoplight:
+            id: iomrtx2pxddtc
+          maxLength: 255
+        last_name:
+          type: string
+          x-stoplight:
+            id: jhdinhfupvd82
+          maxLength: 255
+        picture:
+          type: string
+          x-stoplight:
+            id: dt2rixfbnv6oa
+          maxLength: 1024
+          format: uri
+        active:
+          type: boolean
+          x-stoplight:
+            id: huwimp6r448rm
+        deleted:
+          type: boolean
+          x-stoplight:
+            id: ym5im552de4ci
+        deleted_at:
+          type: string
+          x-stoplight:
+            id: fw94s4my1bz57
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          x-stoplight:
+            id: j4ih2gd5x68wi
+          format: date-time
+        updated_at:
+          type: string
+          x-stoplight:
+            id: mb36phnqekqpn
+          format: date-time
+    Role:
+      title: Role
+      x-stoplight:
+        id: y4don6v0fjqkl
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          x-stoplight:
+            id: fg8qntleh2igh
+        created_at:
+          type: string
+          x-stoplight:
+            id: vdeew5gsjk71f
+          format: date-time

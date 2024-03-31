@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log/slog"
 	"net/http"
 
 	"goadmin-backend/internal/cmd/api/routers"
@@ -8,13 +9,9 @@ import (
 )
 
 // NewRouter returns a new router with all routes defined
-func NewRouter(validator *OpenAPIValidator, handlers *Handlers) http.Handler {
-	var router httproute.Router
-
-	logger := handlers.HealthHandler.Logger
-
+func NewRouter(validator *OpenAPIValidator, handlers *Handlers, logger *slog.Logger) http.Handler {
 	// use chi router
-	router = routers.NewChiRouter(logger)
+	router := routers.NewChiRouter(logger)
 
 	router.Use(validator.Middleware)
 

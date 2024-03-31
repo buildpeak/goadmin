@@ -361,3 +361,29 @@ func (s *ServiceMock) Logout(
 
 	return nil
 }
+
+func (s *ServiceMock) RefreshToken(
+	_ context.Context,
+	_ string,
+) (*domain.JWTToken, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+
+	return &domain.JWTToken{
+		AccessToken: "good_token",
+	}, nil
+}
+
+func (s *ServiceMock) Profile(
+	_ context.Context,
+	_ string,
+) (*domain.User, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+
+	return &domain.User{
+		ID: "1",
+	}, nil
+}
