@@ -132,7 +132,7 @@ func (h *Handler) SignInWithGoogle(res http.ResponseWriter, req *http.Request) {
 	h.RespondJSON(res, token, http.StatusOK)
 }
 
-// Logout handler logs out a user.
+// Logout handler logs out the current user.
 func (h *Handler) Logout(res http.ResponseWriter, req *http.Request) {
 	tokenString := FindToken(req)
 
@@ -145,4 +145,20 @@ func (h *Handler) Logout(res http.ResponseWriter, req *http.Request) {
 	}
 
 	res.WriteHeader(http.StatusOK)
+}
+
+// Profile handler gets the profile of the current user.
+func (h *Handler) Profile(res http.ResponseWriter, req *http.Request) {
+	tokenString := FindToken(req)
+
+	user, err := h.authService.Profile(req.Context(), tokenString)
+	if err != nil {
+		h.Logger.Error("error getting profile", slog.Any("err", err))
+
+		httperr.JSONError(res, err, http.StatusInternalServerError)
+
+		return
+	}
+
+	h.RespondJSON(res, ToUserResponse(user), http.StatusOK)
 }

@@ -31,42 +31,6 @@ type UserFilter struct {
 	CreatedBetween [2]time.Time `json:"created_between"`
 }
 
-// Role model
-// Role model defines the structure of a role
-type Role struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-
-	Permissions []Permission `json:"permissions"`
-}
-
-// Permission model
-// Permission model defines the structure of a permission
-type Permission struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	RuleType  string    `json:"rule_type"`
-	Rule      string    `json:"rule"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
-
-type RolePermission struct {
-	RoleID       string    `json:"role_id"`
-	PermissionID string    `json:"permission_id"`
-	CreatedAt    time.Time `json:"created_at"`
-}
-
-// UserPermission model
-// UserPermission model defines the structure of a user permission
-type UserPermission struct {
-	UserID       string    `json:"user_id"`
-	PermissionID string    `json:"permission_id"`
-	CreatedAt    time.Time `json:"created_at"`
-}
-
 type UserRole struct {
 	UserID    string    `json:"user_id"`
 	RoleID    string    `json:"role_id"`
