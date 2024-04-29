@@ -66,7 +66,14 @@ migrate-down: $(BIN_PARSE_CONFIG) ## run db migration down
 	)
 
 migrate-create: ## create new migration
-	@migrate create -ext sql -dir ./database/migrations $(name)
+	@(\
+		if [ -z "$(name)" ]; then \
+			echo "Usage: make migrate-create name=<migration_name>"; \
+			exit 0; \
+		else \
+			migrate create -ext sql -dir ./database/migrations $(name); \
+		fi; \
+	)
 
 .test:
 	@echo "GO_MOD_NAME: $(GO_MOD_NAME);"

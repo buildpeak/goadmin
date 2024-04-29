@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 
 import { ProLayout, ProConfigProvider } from "@ant-design/pro-components";
 import { ConfigProvider, message } from "antd";
@@ -10,6 +10,14 @@ import AvatarDropdown from "../../components/AvatarDropdown";
 const MainLayout: React.FC = () => {
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
+
+  // check login status
+  useEffect(() => {
+    const accessToken = localStorage.getItem("accessToken");
+    if (!accessToken) {
+      navigate("/login", { replace: true });
+    }
+  }, [navigate]);
 
   return (
     <div id="main-layout">

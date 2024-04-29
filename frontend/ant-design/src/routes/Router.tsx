@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import LoginForm from "../views/auth-forms/Login";
 import Dashboard from "../views/dashboard/Dashboard";
 import MainLayout from "../views/layouts/MainLayout";
@@ -15,6 +15,7 @@ function MainRouter() {
       <Route element={<MainLayout />}>
         <Route path="/dashboard" element={<Dashboard />} />
       </Route>
+      <Route path="*" element={<Navigate to="/dashboard" />} />
     </Routes>
   );
 }
