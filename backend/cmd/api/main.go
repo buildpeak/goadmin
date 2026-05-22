@@ -87,7 +87,7 @@ func main() {
 		openapiValidator,
 		&api.Handlers{
 			AuthHandler:   auth.NewHandler(authService, logger),
-			UserHandler:   user.NewHandler(userService),
+			UserHandler:   user.NewHandler(userService, logger),
 			HealthHandler: api.NewHealthHandler(logger),
 		},
 		logger,

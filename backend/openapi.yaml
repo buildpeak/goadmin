@@ -47,10 +47,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  token:
-                    type: string
+                $ref: '#/components/schemas/JWTToken'
       description: Sign a user in
       operationId: auth-login
       tags:
@@ -61,7 +58,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '204':
+        '200':
           description: User logged out successfully
       operationId: auth-logout
       description: Sign a new out
@@ -97,6 +94,10 @@ paths:
       responses:
         '201':
           description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
       operationId: auth-register
       description: Sign a user up
       tags:
@@ -121,10 +122,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  token:
-                    type: string
+                $ref: '#/components/schemas/JWTToken'
       operationId: auth-signin-with-google
       description: Sign a user in with Google
       tags:
@@ -140,24 +138,16 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  username:
-                    type: string
-                  email:
-                    type: string
-                    format: email
-                  first_name:
-                    type: string
-                  last_name:
-                    type: string
+                $ref: '#/components/schemas/User'
       operationId: auth-profile
       description: Get user profile
       tags:
         - auth
   /v1/users:
     get:
-      summary: Your GET endpoint
+      summary: List users
+      security:
+        - bearerAuth: []
       tags:
         - users
       responses:
@@ -179,7 +169,9 @@ paths:
         in: path
         required: true
     get:
-      summary: Your GET endpoint
+      summary: Get user by ID
+      security:
+        - bearerAuth: []
       tags:
         - users
       responses:
@@ -190,12 +182,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
       operationId: get-v1-users-id
-      requestBody:
-        content: {}
       description: Get a user
     patch:
-      summary: ''
+      summary: Update user
+      security:
+        - bearerAuth: []
       operationId: patch-v1-users-id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                picture:
+                  type: string
+                active:
+                  type: boolean
       responses:
         '200':
           description: OK
@@ -214,7 +224,9 @@ paths:
         in: path
         required: true
     get:
-      summary: Your GET endpoint
+      summary: List user roles
+      security:
+        - bearerAuth: []
       tags:
         - users
       responses:
@@ -319,3 +331,11 @@ components:
           x-stoplight:
             id: vdeew5gsjk71f
           format: date-time
+    JWTToken:
+      title: JWTToken
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string

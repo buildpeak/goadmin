@@ -2,14 +2,15 @@ import React, { useEffect } from "react";
 
 import { ProLayout, ProConfigProvider } from "@ant-design/pro-components";
 import { ConfigProvider, message } from "antd";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import Logo from "../../components/Logo";
-import { UserOutlined } from "@ant-design/icons";
+import { UserOutlined, DashboardOutlined, TeamOutlined } from "@ant-design/icons";
 import AvatarDropdown from "../../components/AvatarDropdown";
 
 const MainLayout: React.FC = () => {
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // check login status
   useEffect(() => {
@@ -46,6 +47,18 @@ const MainLayout: React.FC = () => {
               },
             }}
             layout="mix"
+            location={location}
+            route={{
+              routes: [
+                { path: "/dashboard", name: "Dashboard", icon: <DashboardOutlined /> },
+                { path: "/users", name: "Users", icon: <TeamOutlined /> },
+              ],
+            }}
+            menuItemRender={(item, dom) => (
+              <a onClick={() => item.path && navigate(item.path)}>
+                {dom}
+              </a>
+            )}
           >
             {contextHolder}
             <Outlet />

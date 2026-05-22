@@ -4,6 +4,8 @@ import Dashboard from "../views/dashboard/Dashboard";
 import MainLayout from "../views/layouts/MainLayout";
 import SimpleLayout from "../views/layouts/SimpleLayout";
 import SignUpForm from "../views/auth-forms/SignUp";
+import UserList from "../views/users/UserList";
+import Profile from "../views/profile/Profile";
 
 function MainRouter() {
   return (
@@ -14,6 +16,8 @@ function MainRouter() {
       </Route>
       <Route element={<MainLayout />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/users" element={<UserList />} />
+        <Route path="/profile" element={<Profile />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" />} />
     </Routes>

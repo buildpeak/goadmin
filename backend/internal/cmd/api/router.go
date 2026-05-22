@@ -21,7 +21,7 @@ func NewRouter(validator *OpenAPIValidator, handlers *Handlers, logger *slog.Log
 	router.Post("/auth/signup", handlers.AuthHandler.Register)
 	router.Post("/auth/signin-with-google", handlers.AuthHandler.SignInWithGoogle)
 
-	// add private routes
+	// private routes (require authentication)
 	router.Group(func(grt httproute.Router) {
 		grt.Use(handlers.AuthHandler.Authenticator())
 
@@ -29,8 +29,17 @@ func NewRouter(validator *OpenAPIValidator, handlers *Handlers, logger *slog.Log
 			r.Post("/", handlers.AuthHandler.Logout)
 		})
 
+		grt.Route("/auth/profile", func(r httproute.Router) {
+			r.Get("/", handlers.AuthHandler.Profile)
+		})
+
 		grt.Route("/v1/users", func(r httproute.Router) {
 			r.Get("/", handlers.UserHandler.List)
+		})
+
+		grt.Route("/v1/users/{id}", func(r httproute.Router) {
+			r.Get("/", handlers.UserHandler.GetByID)
+			r.Patch("/", handlers.UserHandler.Update)
 		})
 	})
 

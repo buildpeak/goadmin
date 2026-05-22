@@ -109,7 +109,7 @@ func TestOpenAPIValidator_Middleware(t *testing.T) {
 			}),
 			req:        httptest.NewRequest(http.MethodPost, "/auth/login", nil),
 			wantStatus: http.StatusUnprocessableEntity,
-			wantBody:   `{"type":"/errors/validation-error","title":"Validation Error","status":422,"detail":"Error: POST operation request content type '' does not exist, Reason: The content type '' of the POST request submitted has not been defined, it's an unknown type, Line: 30, Column: 9","instance":"/auth/login","errors":[]}` + "\n",
+			wantBody:   `{"type":"/errors/validation-error","title":"Validation Error","status":422,"detail":"Error: POST operation request content type '' does not exist, Reason: The content type '' of the POST request submitted has not been defined, it's an unknown type, Line: 32, Column: 9","instance":"/auth/login","errors":[]}` + "\n",
 		},
 		{
 			name: "error /auth/login 2",
@@ -119,7 +119,7 @@ func TestOpenAPIValidator_Middleware(t *testing.T) {
 			}),
 			req:        newRequest(http.MethodPost, "/auth/login", []byte(`{"username": "test"}`)),
 			wantStatus: http.StatusUnprocessableEntity,
-			wantBody:   `{"type":"/errors/validation-error","title":"Validation Error","status":422,"detail":"Error: POST request body for '/auth/login' failed to validate schema, Reason: The request body is defined as an object. However, it does not meet the schema requirements of the specification, Validation Errors: [Reason: missing properties: 'password', Location: /required], Line: 33, Column: 15","instance":"/auth/login","errors":[{"detail":"missing properties: 'password'","pointer":"/required"}]}` + "\n",
+			wantBody:   `{"type":"/errors/validation-error","title":"Validation Error","status":422,"detail":"Error: POST request body for '/auth/login' failed to validate schema, Reason: The request body is defined as an object. However, it does not meet the schema requirements of the specification, Validation Errors: [Reason: missing properties: 'password', Location: /required], Line: 35, Column: 15","instance":"/auth/login","errors":[{"detail":"missing properties: 'password'","pointer":"/required"}]}` + "\n",
 		},
 	}
 	for _, tt := range tests {

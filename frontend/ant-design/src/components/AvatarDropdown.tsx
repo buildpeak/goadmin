@@ -40,7 +40,7 @@ const AvatarDropdown = (
 
   const handleMenuClick = async (key: string) => {
     if (key === "profile") {
-      console.log("profile");
+      props.navigate("/profile");
     }
 
     if (key === "logout") {
