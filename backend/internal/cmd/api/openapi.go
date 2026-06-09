@@ -67,7 +67,7 @@ func (v *OpenAPIValidator) Middleware(next http.Handler) http.Handler {
 						validationErrItems,
 						httperr.ValidationErrorItem{
 							Detail:  schemaErr.Reason,
-							Pointer: schemaErr.Location,
+							Pointer: "",
 						},
 					)
 				}

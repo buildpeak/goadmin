@@ -43,6 +43,19 @@ type Config struct {
 		ClientID     string `json:"client_id"`
 		ClientSecret string `json:"client_secret"`
 	} `json:"google"`
+
+	Recaptcha struct {
+		SecretKey string  `json:"secret_key"`
+		MinScore  float64 `json:"min_score"`
+	} `json:"recaptcha"`
+
+	SMTP struct {
+		Host     string `json:"host"`
+		Port     string `json:"port"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+		From     string `json:"from"`
+	} `json:"smtp"`
 }
 
 // NewConfig returns a new configuration.

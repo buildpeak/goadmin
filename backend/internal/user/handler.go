@@ -41,7 +41,7 @@ func (h *Handler) List(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handler) GetByID(res http.ResponseWriter, req *http.Request) {
-	id := chi.URLParam(req, "id")
+	id := chi.URLParam(req, "userId")
 
 	user, err := h.userService.GetByID(req.Context(), id)
 	if err != nil {
@@ -55,7 +55,7 @@ func (h *Handler) GetByID(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handler) Update(res http.ResponseWriter, req *http.Request) {
-	id := chi.URLParam(req, "id")
+	id := chi.URLParam(req, "userId")
 
 	var updates domain.User
 	if err := h.ParseJSON(res, req, &updates); err != nil {

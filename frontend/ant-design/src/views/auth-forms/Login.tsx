@@ -163,7 +163,13 @@ const LoginForm: React.FC = () => {
                   </Checkbox>
                 </Form.Item>
 
-                <a className="login-form-forgot" href="./#">
+                <a
+                  className="login-form-forgot"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate("/forgot-password");
+                  }}
+                >
                   Forgot password
                 </a>
               </Form.Item>

@@ -17,6 +17,15 @@ import "./SignUp.css";
 import { jwtDecode } from "jwt-decode";
 import { GoogleJwtPayload } from "./data-types";
 import { statusMatch, signUp } from "../../services/backend-api";
+
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (cb: () => void) => void;
+      execute: (siteKey: string, options: { action: string }) => Promise<string>;
+    };
+  }
+}
 import SignUpResult from "./SignUpResult";
 
 const { Title } = Typography;
@@ -31,6 +40,14 @@ const SignUpForm: React.FC = () => {
   };
 
   useEffect(() => {
+    const siteKey = process.env.REACT_APP_RECATCHA_SITE_KEY;
+    if (siteKey) {
+      const script = document.createElement("script");
+      script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
+      script.async = true;
+      document.head.appendChild(script);
+    }
+
     const googleIdToken = localStorage.getItem("googleIdToken");
     if (!googleIdToken) {
       return;
@@ -48,11 +65,15 @@ const SignUpForm: React.FC = () => {
   }, [form]);
 
   const onFinish = async (values: any) => {
-    console.log(JSON.stringify(values));
-
     messageApi.loading("Signing up...");
 
     try {
+      const siteKey = process.env.REACT_APP_RECATCHA_SITE_KEY;
+      if (siteKey && window.grecaptcha) {
+        const token = await window.grecaptcha.execute(siteKey, { action: "signup" });
+        values.recaptcha_token = token;
+      }
+
       const data = await signUp(values);
 
       return SignUpResult({ username: data.username });

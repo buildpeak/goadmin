@@ -4,7 +4,7 @@ import { ProLayout, ProConfigProvider } from "@ant-design/pro-components";
 import { ConfigProvider, message } from "antd";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import Logo from "../../components/Logo";
-import { UserOutlined, DashboardOutlined, TeamOutlined } from "@ant-design/icons";
+import { UserOutlined, DashboardOutlined, TeamOutlined, SafetyOutlined, KeyOutlined, HistoryOutlined } from "@ant-design/icons";
 import AvatarDropdown from "../../components/AvatarDropdown";
 
 const MainLayout: React.FC = () => {
@@ -52,6 +52,9 @@ const MainLayout: React.FC = () => {
               routes: [
                 { path: "/dashboard", name: "Dashboard", icon: <DashboardOutlined /> },
                 { path: "/users", name: "Users", icon: <TeamOutlined /> },
+                { path: "/roles", name: "Roles", icon: <SafetyOutlined /> },
+                { path: "/permissions", name: "Permissions", icon: <KeyOutlined /> },
+                { path: "/audit-logs", name: "Audit Logs", icon: <HistoryOutlined /> },
               ],
             }}
             menuItemRender={(item, dom) => (

@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"strings"
+
+	"goadmin-backend/internal/domain"
 )
 
 type contextKey string
@@ -37,6 +39,17 @@ func (h *Handler) Authenticator() func(http.Handler) http.Handler {
 			next.ServeHTTP(res, req.WithContext(newCtx))
 		})
 	}
+}
+
+// UserFromContext extracts the authenticated user from the request context.
+// Returns the user and true if found, or nil and false if not.
+func UserFromContext(ctx context.Context) (*domain.User, bool) {
+	user, ok := ctx.Value(userKey).(domain.User)
+	if !ok {
+		return nil, false
+	}
+
+	return &user, true
 }
 
 func FindToken(req *http.Request) string {

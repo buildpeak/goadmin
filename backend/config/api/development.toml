@@ -9,3 +9,14 @@ level = "debug"
 [google]
 client_id = 'will be replaced by .env file'
 client_secret = 'will be replaced by .env file'
+
+[recaptcha]
+secret_key = ''
+min_score = 0.5
+
+[smtp]
+host = ''
+port = '587'
+username = ''
+password = ''
+from = 'noreply@goadmin.dev'

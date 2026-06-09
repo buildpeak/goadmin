@@ -12,9 +12,13 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 	"google.golang.org/api/idtoken"
 
+	"goadmin-backend/internal/audit"
 	"goadmin-backend/internal/auth"
 	"goadmin-backend/internal/cmd/api"
+	"goadmin-backend/internal/mailer"
 	"goadmin-backend/internal/platform/logging"
+	"goadmin-backend/internal/platform/recaptcha"
+	"goadmin-backend/internal/rbac"
 	"goadmin-backend/internal/repository/postgres"
 	"goadmin-backend/internal/user"
 )
@@ -58,6 +62,10 @@ func main() {
 	// repositories
 	userRepo := postgres.NewUserRepo(dbpool)
 	revokedTokenRepo := postgres.NewRevokedTokenRepo(dbpool)
+	passwordResetTokenRepo := postgres.NewPasswordResetTokenRepo(dbpool)
+	roleRepo := postgres.NewRoleRepo(dbpool)
+	permRepo := postgres.NewPermissionRepo(dbpool)
+	auditLogRepo := postgres.NewAuditLogRepo(dbpool)
 
 	// services
 	idTknValidator, err := idtoken.NewValidator(apiCtx)
@@ -65,14 +73,25 @@ func main() {
 		logger.Error("failed to create id token validator", slog.Any("err", err))
 	}
 
+	appMailer := mailer.New(
+		cfg.SMTP.Host, cfg.SMTP.Port,
+		cfg.SMTP.Username, cfg.SMTP.Password,
+		cfg.SMTP.From, logger,
+	)
+
 	authService := auth.NewAuthService(
 		userRepo,
 		revokedTokenRepo,
+		passwordResetTokenRepo,
 		[]byte(cfg.API.Auth.JWTSecret),
 		idTknValidator,
 		cfg.Google.ClientID,
+		appMailer,
+		"http://localhost:3000",
 	)
 	userService := user.NewUserService(userRepo)
+	rbacService := rbac.NewService(roleRepo, permRepo)
+	auditService := audit.NewService(auditLogRepo)
 
 	// openapi-validator
 	openapiValidator, err := api.NewOpenAPIValidator("", logger)
@@ -82,13 +101,26 @@ func main() {
 		return
 	}
 
+	// wire audit service into handlers that log events
+	authHandler := auth.NewHandler(authService, logger)
+	authHandler.SetAuditService(auditService)
+
+	if cfg.Recaptcha.SecretKey != "" {
+		authHandler.SetRecaptcha(
+			recaptcha.NewVerifier(cfg.Recaptcha.SecretKey),
+			cfg.Recaptcha.MinScore,
+		)
+	}
+
 	// router
 	apiHandler := api.NewRouter(
 		openapiValidator,
 		&api.Handlers{
-			AuthHandler:   auth.NewHandler(authService, logger),
+			AuthHandler:   authHandler,
 			UserHandler:   user.NewHandler(userService, logger),
 			HealthHandler: api.NewHealthHandler(logger),
+			RBACHandler:   rbac.NewHandler(rbacService, logger),
+			AuditHandler:  audit.NewHandler(auditService, logger),
 		},
 		logger,
 	)

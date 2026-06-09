@@ -102,6 +102,31 @@ paths:
       description: Sign a user up
       tags:
         - auth
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
+              required:
+                - refresh_token
+      responses:
+        '200':
+          description: New token pair
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JWTToken'
+      operationId: auth-refresh
+      description: Get a new access token using a refresh token
+      tags:
+        - auth
   /auth/signin-with-google:
     post:
       summary: Sign in with Google
@@ -141,6 +166,66 @@ paths:
                 $ref: '#/components/schemas/User'
       operationId: auth-profile
       description: Get user profile
+      tags:
+        - auth
+  /auth/forgot-password:
+    post:
+      summary: Request password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+              required:
+                - email
+      responses:
+        '200':
+          description: Password reset link sent if email exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+      operationId: auth-forgot-password
+      description: Request a password reset link
+      tags:
+        - auth
+  /auth/reset-password:
+    post:
+      summary: Reset password with token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                password:
+                  type: string
+              required:
+                - token
+                - password
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+      operationId: auth-reset-password
+      description: Reset password using a valid reset token
       tags:
         - auth
   /v1/users:
@@ -241,6 +326,354 @@ paths:
                   $ref: '#/components/schemas/Role'
       operationId: get-v1-users-id-roles
       description: List of roles
+    post:
+      summary: Assign role to user
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      responses:
+        '204':
+          description: Role assigned
+      operationId: post-v1-users-id-roles-roleid
+      description: Assign a role to a user
+    delete:
+      summary: Unassign role from user
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      responses:
+        '204':
+          description: Role unassigned
+      operationId: delete-v1-users-id-roles-roleid
+      description: Remove a role from a user
+  '/v1/users/{id}/permissions':
+    parameters:
+      - schema:
+          type: string
+        name: id
+        in: path
+        required: true
+    get:
+      summary: List user permissions
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuthPermission'
+      operationId: get-v1-users-id-permissions
+      description: List permissions directly assigned to user
+  '/v1/users/{id}/permissions/{permissionId}':
+    parameters:
+      - schema:
+          type: string
+        name: id
+        in: path
+        required: true
+      - schema:
+          type: string
+        name: permissionId
+        in: path
+        required: true
+    post:
+      summary: Assign permission to user
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      responses:
+        '204':
+          description: Permission assigned
+      operationId: post-v1-users-id-permissions-permissionid
+      description: Directly assign a permission to a user
+    delete:
+      summary: Unassign permission from user
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      responses:
+        '204':
+          description: Permission unassigned
+      operationId: delete-v1-users-id-permissions-permissionid
+      description: Remove a direct permission from a user
+  /v1/roles:
+    get:
+      summary: List roles
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+      operationId: get-v1-roles
+      description: List all roles
+    post:
+      summary: Create role
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+              required:
+                - name
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+      operationId: post-v1-roles
+      description: Create a new role
+  '/v1/roles/{id}':
+    parameters:
+      - schema:
+          type: string
+        name: id
+        in: path
+        required: true
+    get:
+      summary: Get role by ID
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+      operationId: get-v1-roles-id
+      description: Get a role
+    patch:
+      summary: Update role
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+      operationId: patch-v1-roles-id
+      description: Update a role
+    delete:
+      summary: Delete role
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      responses:
+        '204':
+          description: Deleted
+      operationId: delete-v1-roles-id
+      description: Delete a role
+  '/v1/roles/{id}/permissions':
+    parameters:
+      - schema:
+          type: string
+        name: id
+        in: path
+        required: true
+    get:
+      summary: List permissions for role
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuthPermission'
+      operationId: get-v1-roles-id-permissions
+      description: List permissions assigned to a role
+  '/v1/roles/{id}/permissions/{permissionId}':
+    parameters:
+      - schema:
+          type: string
+        name: id
+        in: path
+        required: true
+      - schema:
+          type: string
+        name: permissionId
+        in: path
+        required: true
+    post:
+      summary: Add permission to role
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      responses:
+        '204':
+          description: Permission added
+      operationId: post-v1-roles-id-permissions-permissionid
+      description: Assign a permission to a role
+    delete:
+      summary: Remove permission from role
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      responses:
+        '204':
+          description: Permission removed
+      operationId: delete-v1-roles-id-permissions-permissionid
+      description: Remove a permission from a role
+  /v1/permissions:
+    get:
+      summary: List permissions
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuthPermission'
+      operationId: get-v1-permissions
+      description: List all permissions
+    post:
+      summary: Create permission
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                rule_type:
+                  type: string
+                rule:
+                  type: string
+              required:
+                - name
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthPermission'
+      operationId: post-v1-permissions
+      description: Create a new permission
+  '/v1/permissions/{id}':
+    parameters:
+      - schema:
+          type: string
+        name: id
+        in: path
+        required: true
+    get:
+      summary: Get permission by ID
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthPermission'
+      operationId: get-v1-permissions-id
+      description: Get a permission
+    patch:
+      summary: Update permission
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                rule_type:
+                  type: string
+                rule:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthPermission'
+      operationId: patch-v1-permissions-id
+      description: Update a permission
+    delete:
+      summary: Delete permission
+      security:
+        - bearerAuth: []
+      tags:
+        - users
+      responses:
+        '204':
+          description: Deleted
+      operationId: delete-v1-permissions-id
+      description: Delete a permission
 servers:
   - url: 'http://localhost:3600'
     description: Dev
@@ -330,6 +763,24 @@ components:
           type: string
           x-stoplight:
             id: vdeew5gsjk71f
+          format: date-time
+    AuthPermission:
+      title: AuthPermission
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        rule_type:
+          type: string
+        rule:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
           format: date-time
     JWTToken:
       title: JWTToken

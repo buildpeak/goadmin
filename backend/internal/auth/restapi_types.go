@@ -19,11 +19,12 @@ type LogoutRequest struct {
 
 // RegisterRequest represents a request to register a user.
 type RegisterRequest struct {
-	Username  string `json:"username" validate:"required"`
-	Email     string `json:"email" validate:"required,email"`
-	Password  string `json:"password" validate:"required"`
-	FirstName string `json:"first_name" validate:"required"`
-	LastName  string `json:"last_name" validate:"required"`
+	Username       string `json:"username" validate:"required"`
+	Email          string `json:"email" validate:"required,email"`
+	Password       string `json:"password" validate:"required"`
+	FirstName      string `json:"first_name" validate:"required"`
+	LastName       string `json:"last_name" validate:"required"`
+	RecaptchaToken string `json:"recaptcha_token"`
 }
 
 type GoogleIDTokenVerifyRequest struct {

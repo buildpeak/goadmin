@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
@@ -132,6 +133,26 @@ func (r *UserRepo) FindByUsername(
 	return user, nil
 }
 
+// FindByEmail returns a user from the database by email
+func (r *UserRepo) FindByEmail(
+	ctx context.Context,
+	email string,
+) (*domain.User, error) {
+	findByEmailQuery := fmt.Sprintf(`SELECT * FROM %s
+	WHERE email = $1 AND NOT deleted AND active`, userTable)
+
+	user, err := queryRow[domain.User](ctx, r.db, findByEmailQuery, email)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.NewResourceNotFoundError("User", "email="+email)
+		}
+
+		return nil, fmt.Errorf("find user by email error: %w", err)
+	}
+
+	return user, nil
+}
+
 // Create a new user in the database
 func (r *UserRepo) Create(
 	ctx context.Context,
@@ -194,6 +215,13 @@ func (r *UserRepo) Update(
 		fields = append(fields, fmt.Sprintf("picture = $%d", len(args)))
 	}
 
+	if user.TotpSecret != nil {
+		args = append(args, *user.TotpSecret)
+		fields = append(fields, fmt.Sprintf("totp_secret = $%d", len(args)))
+		args = append(args, user.TotpEnabled)
+		fields = append(fields, fmt.Sprintf("totp_enabled = $%d", len(args)))
+	}
+
 	args = append(args, user.ID)
 
 	updateUserQuery := fmt.Sprintf(`UPDATE %s SET
@@ -223,6 +251,43 @@ func (r *UserRepo) SoftDelete(ctx context.Context, usrID string) error {
 	_, err := exec(ctx, r.db, softDeleteUserQuery, usrID)
 	if err != nil {
 		return fmt.Errorf("soft delete user error: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateFailedAttempts updates the failed login count and lock status.
+func (r *UserRepo) UpdateFailedAttempts(
+	ctx context.Context,
+	id string,
+	attempts int,
+	lockedUntil *time.Time,
+) error {
+	query := fmt.Sprintf(
+		`UPDATE %s SET failed_login_attempts = $1, locked_until = $2, updated_at = NOW() WHERE id = $3`,
+		userTable,
+	)
+	_, err := exec(ctx, r.db, query, attempts, lockedUntil, id)
+	if err != nil {
+		return fmt.Errorf("update failed attempts error: %w", err)
+	}
+	return nil
+}
+
+// UpdatePassword updates a user's password
+func (r *UserRepo) UpdatePassword(
+	ctx context.Context,
+	id string,
+	hashedPassword string,
+) error {
+	query := fmt.Sprintf(
+		`UPDATE %s SET password = $1, updated_at = NOW() WHERE id = $2`,
+		userTable,
+	)
+
+	_, err := exec(ctx, r.db, query, hashedPassword, id)
+	if err != nil {
+		return fmt.Errorf("update password error: %w", err)
 	}
 
 	return nil

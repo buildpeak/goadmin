@@ -4,7 +4,9 @@ import (
 	"log/slog"
 	"net/http"
 
+	"goadmin-backend/internal/audit"
 	"goadmin-backend/internal/auth"
+	"goadmin-backend/internal/rbac"
 	"goadmin-backend/internal/user"
 )
 
@@ -13,6 +15,8 @@ type Handlers struct {
 	AuthHandler   *auth.Handler
 	UserHandler   *user.Handler
 	HealthHandler *HealthHandler
+	RBACHandler   *rbac.Handler
+	AuditHandler  *audit.Handler
 }
 
 type HealthHandler struct {
